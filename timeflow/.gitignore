@@ -1,0 +1,64 @@
+# Operating system and editor files
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+.vscode/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+.packages
+
+# Tests, profiling and generated reports
+/coverage/
+*.lcov
+*.trace
+*.profraw
+*.profdata
+
+# Locally built distributables
+*.apk
+*.aab
+*.ipa
+*.app.dSYM.zip
+*.xcarchive
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Local environment and signing configuration
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+key.properties
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release

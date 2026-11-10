@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,6 +20,10 @@ Future<void> main() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
+
+  if (kDebugMode) {
+    await Future<void>.delayed(const Duration(seconds: 20));
+  }
 
   runApp(const TimeFlowApp());
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
+import 'splash/timeflow_splash.dart';
 import 'theme/app_theme.dart';
 import 'widgets/timeflow_navigation.dart';
 
@@ -15,6 +16,7 @@ class TimeFlowApp extends StatefulWidget {
 
 class _TimeFlowAppState extends State<TimeFlowApp> {
   var _selectedIndex = 0;
+  var _showStartup = true;
 
   void _selectDestination(int index) {
     if (index > 2 || index == _selectedIndex) return;
@@ -27,27 +29,48 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
       title: 'TimeFlow',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: Stack(
-        fit: StackFit.expand,
-        children: [
-          _AnimatedScreenStack(
-            selectedIndex: _selectedIndex,
-            children: const [
-              TimerScreen(),
-              HistoryScreen(),
-              StatisticsScreen(),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: TimeFlowNavigation(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _selectDestination,
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 460),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween(begin: 0.985, end: 1.0).animate(animation),
+              child: child,
             ),
-          ),
-        ],
+          );
+        },
+        child:
+            _showStartup
+                ? TimeFlowSplash(
+                  key: const ValueKey('startup'),
+                  onFinished: () => setState(() => _showStartup = false),
+                )
+                : Stack(
+                  key: const ValueKey('main'),
+                  fit: StackFit.expand,
+                  children: [
+                    _AnimatedScreenStack(
+                      selectedIndex: _selectedIndex,
+                      children: const [
+                        TimerScreen(),
+                        HistoryScreen(),
+                        StatisticsScreen(),
+                      ],
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: TimeFlowNavigation(
+                        selectedIndex: _selectedIndex,
+                        onDestinationSelected: _selectDestination,
+                      ),
+                    ),
+                  ],
+                ),
       ),
     );
   }

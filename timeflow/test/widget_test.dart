@@ -4,6 +4,7 @@ import 'package:timeflow/app/app.dart';
 void main() {
   testWidgets('renders the TimeFlow home screen', (tester) async {
     await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('TimeFlow'), findsOneWidget);
     expect(find.text('Programming').hitTestable(), findsOneWidget);
@@ -15,6 +16,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('History').hitTestable());
     await tester.pumpAndSettle();

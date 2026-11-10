@@ -6,8 +6,33 @@ void main() {
     await tester.pumpWidget(const TimeFlowApp());
 
     expect(find.text('TimeFlow'), findsOneWidget);
-    expect(find.text('Programming'), findsOneWidget);
+    expect(find.text('Programming').hitTestable(), findsOneWidget);
     expect(find.text('00:00:00'), findsOneWidget);
     expect(find.text('Start focus'), findsOneWidget);
+  });
+
+  testWidgets('switches between all main screens in both directions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const TimeFlowApp());
+
+    await tester.tap(find.text('History').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Your time, your story.').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Statistics').hitTestable());
+    await tester.pumpAndSettle();
+    expect(
+      find.text('See where your time goes.').hitTestable(),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('History').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Your time, your story.').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Home').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Make today count.').hitTestable(), findsOneWidget);
   });
 }

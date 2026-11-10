@@ -9,9 +9,7 @@ import '../widgets/activity_trend_card.dart';
 import '../widgets/focus_summary_card.dart';
 
 class StatisticsScreen extends StatelessWidget {
-  const StatisticsScreen({required this.onDestinationSelected, super.key});
-
-  final ValueChanged<int> onDestinationSelected;
+  const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +64,6 @@ class StatisticsScreen extends StatelessWidget {
             },
           ),
         ),
-      ),
-      bottomNavigationBar: TimeFlowNavigation(
-        selectedIndex: 2,
-        onDestinationSelected: onDestinationSelected,
       ),
     );
   }

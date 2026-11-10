@@ -9,9 +9,7 @@ import '../widgets/stopwatch_dial.dart';
 import '../widgets/timer_controls.dart';
 
 class TimerScreen extends StatelessWidget {
-  const TimerScreen({required this.onDestinationSelected, super.key});
-
-  final ValueChanged<int> onDestinationSelected;
+  const TimerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -68,10 +66,6 @@ class TimerScreen extends StatelessWidget {
             },
           ),
         ),
-      ),
-      bottomNavigationBar: TimeFlowNavigation(
-        selectedIndex: 0,
-        onDestinationSelected: onDestinationSelected,
       ),
     );
   }

@@ -4,6 +4,7 @@ import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/timeflow_navigation.dart';
 
 class TimeFlowApp extends StatefulWidget {
   const TimeFlowApp({super.key});
@@ -26,14 +27,69 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
       title: 'TimeFlow',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: IndexedStack(
-        index: _selectedIndex,
+      home: Stack(
+        fit: StackFit.expand,
         children: [
-          TimerScreen(onDestinationSelected: _selectDestination),
-          HistoryScreen(onDestinationSelected: _selectDestination),
-          StatisticsScreen(onDestinationSelected: _selectDestination),
+          _AnimatedScreenStack(
+            selectedIndex: _selectedIndex,
+            children: const [
+              TimerScreen(),
+              HistoryScreen(),
+              StatisticsScreen(),
+            ],
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: TimeFlowNavigation(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _selectDestination,
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _AnimatedScreenStack extends StatelessWidget {
+  const _AnimatedScreenStack({
+    required this.selectedIndex,
+    required this.children,
+  });
+
+  static const _duration = Duration(milliseconds: 180);
+  static const _hiddenScale = 0.98;
+
+  final int selectedIndex;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: List.generate(children.length, (index) {
+        final isSelected = index == selectedIndex;
+
+        return ExcludeSemantics(
+          excluding: !isSelected,
+          child: IgnorePointer(
+            ignoring: !isSelected,
+            child: AnimatedScale(
+              duration: _duration,
+              curve: Curves.easeInOutCubic,
+              scale: isSelected ? 1 : _hiddenScale,
+              child: AnimatedOpacity(
+                duration: _duration,
+                curve: Curves.easeInOutCubic,
+                opacity: isSelected ? 1 : 0,
+                child: children[index],
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

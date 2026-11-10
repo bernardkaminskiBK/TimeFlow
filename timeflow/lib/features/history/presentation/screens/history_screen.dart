@@ -9,9 +9,7 @@ import '../widgets/history_date_selector.dart';
 import '../widgets/weekly_summary_card.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({required this.onDestinationSelected, super.key});
-
-  final ValueChanged<int> onDestinationSelected;
+  const HistoryScreen({super.key});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -101,30 +99,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       ),
-      floatingActionButton: IgnorePointer(
-        ignoring: !_showAddButton,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          offset: _showAddButton ? Offset.zero : const Offset(0, 0.7),
-          child: AnimatedScale(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(
+          bottom: TimeFlowNavigation.clearanceHeight,
+        ),
+        child: IgnorePointer(
+          ignoring: !_showAddButton,
+          child: AnimatedSlide(
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
-            scale: _showAddButton ? 1 : 0.82,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 210),
-              curve: Curves.easeOut,
-              opacity: _showAddButton ? 1 : 0,
-              child: _AddEntryButton(onPressed: () {}),
+            offset: _showAddButton ? Offset.zero : const Offset(0, 0.7),
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              scale: _showAddButton ? 1 : 0.82,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 210),
+                curve: Curves.easeOut,
+                opacity: _showAddButton ? 1 : 0,
+                child: _AddEntryButton(onPressed: () {}),
+              ),
             ),
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: TimeFlowNavigation(
-        selectedIndex: 1,
-        onDestinationSelected: widget.onDestinationSelected,
-      ),
     );
   }
 }

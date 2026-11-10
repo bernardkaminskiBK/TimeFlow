@@ -73,7 +73,11 @@ class TimeFlowNavigation extends StatelessWidget {
                     label: 'History',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.bar_chart_rounded),
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(
+                      Icons.bar_chart_rounded,
+                      color: AppColors.cyan,
+                    ),
                     label: 'Statistics',
                   ),
                 ],

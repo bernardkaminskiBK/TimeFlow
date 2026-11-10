@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/history/presentation/screens/history_screen.dart';
+import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -15,7 +16,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
   var _selectedIndex = 0;
 
   void _selectDestination(int index) {
-    if (index > 1 || index == _selectedIndex) return;
+    if (index > 2 || index == _selectedIndex) return;
     setState(() => _selectedIndex = index);
   }
 
@@ -30,6 +31,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
         children: [
           TimerScreen(onDestinationSelected: _selectDestination),
           HistoryScreen(onDestinationSelected: _selectDestination),
+          StatisticsScreen(onDestinationSelected: _selectDestination),
         ],
       ),
     );

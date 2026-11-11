@@ -15,12 +15,7 @@ class ActivityCubit extends Cubit<ActivityState> {
 
   Future<void> loadActivities() async {
     try {
-      emit(
-        ActivityState(
-          status: ActivityStatus.ready,
-          activities: await _repository.getActivities(),
-        ),
-      );
+      _emitActivities(await _repository.getActivities());
     } catch (_) {
       emit(const ActivityState(status: ActivityStatus.failure));
     }
@@ -63,6 +58,21 @@ class ActivityCubit extends Cubit<ActivityState> {
     await _save(activity.copyWith(isArchived: false));
   }
 
+  void selectActivity(String activityId) {
+    final isSelectable = state.activeActivities.any(
+      (activity) => activity.id == activityId,
+    );
+    if (!isSelectable || activityId == state.selectedActivityId) return;
+
+    emit(
+      ActivityState(
+        status: state.status,
+        activities: state.activities,
+        selectedActivityId: activityId,
+      ),
+    );
+  }
+
   Future<ActivityDeletionResult> deleteActivity(String activityId) {
     return _pendingDeletions.putIfAbsent(
       activityId,
@@ -74,12 +84,7 @@ class ActivityCubit extends Cubit<ActivityState> {
     try {
       final result = await _repository.deleteActivity(activityId);
       if (result != ActivityDeletionResult.referenced) {
-        emit(
-          ActivityState(
-            status: ActivityStatus.ready,
-            activities: await _repository.getActivities(),
-          ),
-        );
+        _emitActivities(await _repository.getActivities());
       }
       return result;
     } finally {
@@ -90,19 +95,37 @@ class ActivityCubit extends Cubit<ActivityState> {
   Future<void> _save(Activity activity) async {
     try {
       await _repository.saveActivity(activity);
-      emit(
-        ActivityState(
-          status: ActivityStatus.ready,
-          activities: await _repository.getActivities(),
-        ),
-      );
+      _emitActivities(await _repository.getActivities());
     } catch (_) {
       emit(
         ActivityState(
           status: ActivityStatus.failure,
           activities: state.activities,
+          selectedActivityId: state.selectedActivityId,
         ),
       );
     }
+  }
+
+  void _emitActivities(List<Activity> activities) {
+    final activeActivities =
+        activities.where((activity) => !activity.isArchived).toList();
+    final currentSelectionIsValid = activeActivities.any(
+      (activity) => activity.id == state.selectedActivityId,
+    );
+    final selectedActivityId =
+        currentSelectionIsValid
+            ? state.selectedActivityId
+            : activeActivities.isEmpty
+            ? null
+            : activeActivities.first.id;
+
+    emit(
+      ActivityState(
+        status: ActivityStatus.ready,
+        activities: activities,
+        selectedActivityId: selectedActivityId,
+      ),
+    );
   }
 }

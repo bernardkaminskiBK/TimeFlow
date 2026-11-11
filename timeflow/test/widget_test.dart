@@ -37,4 +37,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Make today count.').hitTestable(), findsOneWidget);
   });
+
+  testWidgets('selects the current activity from the home screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Programming').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Choose activity'), findsOneWidget);
+
+    await tester.tap(find.text('English').hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('English').hitTestable(), findsOneWidget);
+    expect(find.text('Choose activity'), findsNothing);
+  });
 }

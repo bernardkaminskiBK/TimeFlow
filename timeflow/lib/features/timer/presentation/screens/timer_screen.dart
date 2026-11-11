@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
 import '../../../activities/presentation/screens/manage_activities_screen.dart';
+import '../widgets/current_activity_selector.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/stopwatch_dial.dart';
 import '../widgets/timer_controls.dart';
@@ -53,7 +54,7 @@ class TimerScreen extends StatelessWidget {
                       children: [
                         const _Header(),
                         const SizedBox(height: 28),
-                        const _ActivityLabel(),
+                        const CurrentActivitySelector(),
                         const SizedBox(height: 16),
                         const StopwatchDial(),
                         const SizedBox(height: 24),
@@ -194,51 +195,6 @@ class _HeaderState extends State<_Header> with WidgetsBindingObserver {
                 fontWeight: FontWeight.w500,
               ),
             ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _ActivityLabel extends StatelessWidget {
-  const _ActivityLabel();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.13),
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.28),
-            ),
-          ),
-          child: const Icon(
-            Icons.code_rounded,
-            size: 19,
-            color: AppColors.cyan,
-          ),
-        ),
-        const SizedBox(width: 11),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'CURRENT ACTIVITY',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.35,
-              ),
-            ),
-            Text('Programming', style: Theme.of(context).textTheme.titleMedium),
           ],
         ),
       ],

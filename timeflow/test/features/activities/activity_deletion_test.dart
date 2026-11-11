@@ -23,6 +23,7 @@ void main() {
         isFalse,
       );
       expect(cubit.state.activeActivities, hasLength(3));
+      expect(cubit.state.selectedActivity?.id, 'activity-english');
     });
 
     test('deletes an archived activity', () async {
@@ -101,6 +102,65 @@ void main() {
       expect(await first, ActivityDeletionResult.deleted);
       expect(await second, ActivityDeletionResult.deleted);
       expect(cubit.state.activities, isEmpty);
+    });
+  });
+
+  group('Current activity selection', () {
+    test('selects the first active activity initially', () async {
+      final cubit = await _readyCubit(InMemoryActivityRepository());
+      addTearDown(cubit.close);
+
+      expect(cubit.state.selectedActivity?.id, 'activity-programming');
+    });
+
+    test('selects another active activity', () async {
+      final cubit = await _readyCubit(InMemoryActivityRepository());
+      addTearDown(cubit.close);
+
+      cubit.selectActivity('activity-english');
+
+      expect(cubit.state.selectedActivity?.id, 'activity-english');
+    });
+
+    test('moves selection when the selected activity is archived', () async {
+      final cubit = await _readyCubit(InMemoryActivityRepository());
+      addTearDown(cubit.close);
+      cubit.selectActivity('activity-english');
+      final english = cubit.state.selectedActivity!;
+
+      await cubit.archiveActivity(english);
+
+      expect(cubit.state.selectedActivity?.id, 'activity-programming');
+    });
+
+    test('clears selection when no active activities remain', () async {
+      final cubit = await _readyCubit(InMemoryActivityRepository());
+      addTearDown(cubit.close);
+
+      for (final activity in List<Activity>.of(cubit.state.activeActivities)) {
+        await cubit.archiveActivity(activity);
+      }
+
+      expect(cubit.state.selectedActivity, isNull);
+
+      final archived = cubit.state.archivedActivities.first;
+      await cubit.restoreActivity(archived);
+      expect(cubit.state.selectedActivity?.id, archived.id);
+    });
+
+    test('ignores archived and unknown selections', () async {
+      final cubit = await _readyCubit(InMemoryActivityRepository());
+      addTearDown(cubit.close);
+      final initialSelection = cubit.state.selectedActivityId;
+      final reading = cubit.state.activities.firstWhere(
+        (activity) => activity.id == 'activity-reading',
+      );
+      await cubit.archiveActivity(reading);
+
+      cubit.selectActivity(reading.id);
+      cubit.selectActivity('missing-activity');
+
+      expect(cubit.state.selectedActivityId, initialSelection);
     });
   });
 }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../features/activities/data/repositories/in_memory_activity_repository.dart';
+import '../features/activities/domain/repositories/activity_repository.dart';
+import '../features/activities/presentation/cubit/activity_cubit.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
@@ -15,8 +19,23 @@ class TimeFlowApp extends StatefulWidget {
 }
 
 class _TimeFlowAppState extends State<TimeFlowApp> {
+  late final ActivityRepository _activityRepository;
+  late final ActivityCubit _activityCubit;
   var _selectedIndex = 0;
   var _showStartup = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _activityRepository = InMemoryActivityRepository();
+    _activityCubit = ActivityCubit(_activityRepository);
+  }
+
+  @override
+  void dispose() {
+    _activityCubit.close();
+    super.dispose();
+  }
 
   void _selectDestination(int index) {
     if (index > 2 || index == _selectedIndex) return;
@@ -25,52 +44,58 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TimeFlow',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 460),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-              scale: Tween(begin: 0.985, end: 1.0).animate(animation),
-              child: child,
-            ),
-          );
-        },
-        child:
-            _showStartup
-                ? TimeFlowSplash(
-                  key: const ValueKey('startup'),
-                  onFinished: () => setState(() => _showStartup = false),
-                )
-                : Stack(
-                  key: const ValueKey('main'),
-                  fit: StackFit.expand,
-                  children: [
-                    _AnimatedScreenStack(
-                      selectedIndex: _selectedIndex,
-                      children: const [
-                        TimerScreen(),
-                        HistoryScreen(),
-                        StatisticsScreen(),
+    return RepositoryProvider.value(
+      value: _activityRepository,
+      child: BlocProvider.value(
+        value: _activityCubit,
+        child: MaterialApp(
+          title: 'TimeFlow',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.dark,
+          home: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 460),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.985, end: 1.0).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child:
+                _showStartup
+                    ? TimeFlowSplash(
+                      key: const ValueKey('startup'),
+                      onFinished: () => setState(() => _showStartup = false),
+                    )
+                    : Stack(
+                      key: const ValueKey('main'),
+                      fit: StackFit.expand,
+                      children: [
+                        _AnimatedScreenStack(
+                          selectedIndex: _selectedIndex,
+                          children: const [
+                            TimerScreen(),
+                            HistoryScreen(),
+                            StatisticsScreen(),
+                          ],
+                        ),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: TimeFlowNavigation(
+                            selectedIndex: _selectedIndex,
+                            onDestinationSelected: _selectDestination,
+                          ),
+                        ),
                       ],
                     ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: TimeFlowNavigation(
-                        selectedIndex: _selectedIndex,
-                        onDestinationSelected: _selectDestination,
-                      ),
-                    ),
-                  ],
-                ),
+          ),
+        ),
       ),
     );
   }

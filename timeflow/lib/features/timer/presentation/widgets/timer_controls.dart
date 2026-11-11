@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 
 class TimerControls extends StatelessWidget {
-  const TimerControls({super.key});
+  const TimerControls({required this.onManageActivities, super.key});
+
+  final VoidCallback onManageActivities;
 
   @override
   Widget build(BuildContext context) {
@@ -66,20 +68,62 @@ class TimerControls extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 18),
-        const _RoundControl(
-          icon: Icons.more_horiz_rounded,
-          semanticLabel: 'More options',
-        ),
+        _MoreMenu(onManageActivities: onManageActivities),
       ],
     );
   }
 }
 
+class _MoreMenu extends StatelessWidget {
+  const _MoreMenu({required this.onManageActivities});
+
+  final VoidCallback onManageActivities;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuAnchor(
+      alignmentOffset: const Offset(-150, 8),
+      style: MenuStyle(
+        backgroundColor: const WidgetStatePropertyAll(AppColors.surface),
+        elevation: const WidgetStatePropertyAll(12),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.stroke),
+          ),
+        ),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          onPressed: onManageActivities,
+          leadingIcon: const Icon(
+            Icons.tune_rounded,
+            color: AppColors.cyan,
+            size: 20,
+          ),
+          child: const Text('Manage Activities'),
+        ),
+      ],
+      builder:
+          (context, controller, child) => _RoundControl(
+            icon: Icons.more_horiz_rounded,
+            semanticLabel: 'More options',
+            onTap: controller.isOpen ? controller.close : controller.open,
+          ),
+    );
+  }
+}
+
 class _RoundControl extends StatelessWidget {
-  const _RoundControl({required this.icon, required this.semanticLabel});
+  const _RoundControl({
+    required this.icon,
+    required this.semanticLabel,
+    this.onTap,
+  });
 
   final IconData icon;
   final String semanticLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +136,7 @@ class _RoundControl extends StatelessWidget {
           side: BorderSide(color: AppColors.stroke.withValues(alpha: 0.8)),
         ),
         child: InkWell(
-          onTap: () {},
+          onTap: onTap ?? () {},
           customBorder: const CircleBorder(),
           child: SizedBox.square(
             dimension: 48,

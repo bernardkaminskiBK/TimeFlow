@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
+import '../../../activities/presentation/screens/manage_activities_screen.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/stopwatch_dial.dart';
 import '../widgets/timer_controls.dart';
@@ -47,18 +48,26 @@ class TimerScreen extends StatelessWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _Header(),
-                        SizedBox(height: 28),
-                        _ActivityLabel(),
-                        SizedBox(height: 16),
-                        StopwatchDial(),
-                        SizedBox(height: 24),
-                        TimerControls(),
-                        SizedBox(height: 28),
-                        DailySummaryCard(),
+                        const _Header(),
+                        const SizedBox(height: 28),
+                        const _ActivityLabel(),
+                        const SizedBox(height: 16),
+                        const StopwatchDial(),
+                        const SizedBox(height: 24),
+                        TimerControls(
+                          onManageActivities:
+                              () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder:
+                                      (_) => const ManageActivitiesScreen(),
+                                ),
+                              ),
+                        ),
+                        const SizedBox(height: 28),
+                        const DailySummaryCard(),
                       ],
                     ),
                   ),

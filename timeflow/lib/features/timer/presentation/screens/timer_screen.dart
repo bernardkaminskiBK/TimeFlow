@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -71,8 +72,76 @@ class TimerScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends StatefulWidget {
   const _Header();
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> with WidgetsBindingObserver {
+  static const _weekdays = [
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY',
+  ];
+  static const _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  late DateTime _currentDate;
+  Timer? _midnightTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _updateDate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _updateDate();
+    }
+  }
+
+  void _updateDate() {
+    final now = DateTime.now();
+    _midnightTimer?.cancel();
+    _midnightTimer = Timer(
+      DateTime(now.year, now.month, now.day + 1).difference(now),
+      _updateDate,
+    );
+
+    if (mounted) {
+      setState(() => _currentDate = now);
+    } else {
+      _currentDate = now;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _midnightTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,22 +164,22 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'MONDAY',
-              style: TextStyle(
+              _weekdays[_currentDate.weekday - 1],
+              style: const TextStyle(
                 color: AppColors.cyan,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,
               ),
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             Text(
-              '10 November',
-              style: TextStyle(
+              '${_currentDate.day} ${_months[_currentDate.month - 1]}',
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

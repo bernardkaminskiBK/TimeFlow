@@ -8,6 +8,7 @@ import '../activity_visuals.dart';
 import '../cubit/activity_cubit.dart';
 import '../cubit/activity_state.dart';
 import '../widgets/activity_editor_sheet.dart';
+import '../../../timer/presentation/cubit/stopwatch_cubit.dart';
 
 class ManageActivitiesScreen extends StatefulWidget {
   const ManageActivitiesScreen({super.key});
@@ -88,6 +89,8 @@ class _ManageActivitiesScreenState extends State<ManageActivitiesScreen> {
         ActivityDeletionResult.referenced =>
           'This activity has recorded sessions and cannot be permanently deleted.',
         ActivityDeletionResult.notFound => 'This activity no longer exists.',
+        ActivityDeletionResult.sessionLocked =>
+          'This activity is locked while its tracking session exists.',
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -130,6 +133,9 @@ class _ManageActivitiesScreenState extends State<ManageActivitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lockedActivityId = context.select<StopwatchCubit, String?>(
+      (cubit) => cubit.state.hasSession ? cubit.state.activityId : null,
+    );
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -219,6 +225,8 @@ class _ManageActivitiesScreenState extends State<ManageActivitiesScreen> {
                               isDeleting: _deletingActivityIds.contains(
                                 activities[index].id,
                               ),
+                              isLocked:
+                                  activities[index].id == lockedActivityId,
                             ),
                       ),
                     },
@@ -378,6 +386,7 @@ class _ActivityCard extends StatelessWidget {
     required this.onRestore,
     required this.onDelete,
     required this.isDeleting,
+    required this.isLocked,
   });
 
   final Activity activity;
@@ -387,6 +396,7 @@ class _ActivityCard extends StatelessWidget {
   final VoidCallback onRestore;
   final VoidCallback onDelete;
   final bool isDeleting;
+  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +447,19 @@ class _ActivityCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          if (!isArchived)
+          if (isLocked)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: Tooltip(
+                message: 'Locked by current session',
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  color: AppColors.cyan,
+                  size: 20,
+                ),
+              ),
+            ),
+          if (!isArchived && !isLocked)
             IconButton(
               tooltip: 'Edit',
               onPressed: onEdit,
@@ -447,16 +469,17 @@ class _ActivityCard extends StatelessWidget {
                 size: 20,
               ),
             ),
-          IconButton(
-            tooltip: isArchived ? 'Restore' : 'Archive',
-            onPressed: isArchived ? onRestore : onArchive,
-            icon: Icon(
-              isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
-              color: isArchived ? AppColors.cyan : AppColors.textSecondary,
-              size: 21,
+          if (!isLocked)
+            IconButton(
+              tooltip: isArchived ? 'Restore' : 'Archive',
+              onPressed: isArchived ? onRestore : onArchive,
+              icon: Icon(
+                isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                color: isArchived ? AppColors.cyan : AppColors.textSecondary,
+                size: 21,
+              ),
             ),
-          ),
-          if (isArchived)
+          if (isArchived && !isLocked)
             IconButton(
               tooltip: 'Delete',
               onPressed: isDeleting ? null : onDelete,

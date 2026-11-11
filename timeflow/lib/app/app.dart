@@ -6,6 +6,9 @@ import '../features/activities/domain/repositories/activity_repository.dart';
 import '../features/activities/presentation/cubit/activity_cubit.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
+import '../features/time_entries/data/repositories/in_memory_time_entry_repository.dart';
+import '../features/time_entries/domain/repositories/time_entry_repository.dart';
+import '../features/timer/presentation/cubit/stopwatch_cubit.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
 import 'splash/timeflow_splash.dart';
 import 'theme/app_theme.dart';
@@ -18,22 +21,42 @@ class TimeFlowApp extends StatefulWidget {
   State<TimeFlowApp> createState() => _TimeFlowAppState();
 }
 
-class _TimeFlowAppState extends State<TimeFlowApp> {
+class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
   late final ActivityRepository _activityRepository;
   late final ActivityCubit _activityCubit;
+  late final TimeEntryRepository _timeEntryRepository;
+  late final StopwatchCubit _stopwatchCubit;
   var _selectedIndex = 0;
   var _showStartup = true;
 
   @override
   void initState() {
     super.initState();
-    _activityRepository = InMemoryActivityRepository();
-    _activityCubit = ActivityCubit(_activityRepository);
+    WidgetsBinding.instance.addObserver(this);
+    _timeEntryRepository = InMemoryTimeEntryRepository();
+    _activityRepository = InMemoryActivityRepository(
+      hasTimeEntries: _timeEntryRepository.hasEntriesForActivity,
+    );
+    _stopwatchCubit = StopwatchCubit(_timeEntryRepository);
+    _activityCubit = ActivityCubit(
+      _activityRepository,
+      hasSession: () => _stopwatchCubit.hasSession,
+      isActivityLocked: _stopwatchCubit.isActivityLocked,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _stopwatchCubit.refresh();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _activityCubit.close();
+    _stopwatchCubit.close();
     super.dispose();
   }
 
@@ -44,10 +67,16 @@ class _TimeFlowAppState extends State<TimeFlowApp> {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: _activityRepository,
-      child: BlocProvider.value(
-        value: _activityCubit,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: _activityRepository),
+        RepositoryProvider.value(value: _timeEntryRepository),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _activityCubit),
+          BlocProvider.value(value: _stopwatchCubit),
+        ],
         child: MaterialApp(
           title: 'TimeFlow',
           debugShowCheckedModeBanner: false,

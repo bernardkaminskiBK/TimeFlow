@@ -1,6 +1,6 @@
 import '../models/activity.dart';
 
-enum ActivityDeletionResult { deleted, referenced, notFound }
+enum ActivityDeletionResult { deleted, referenced, notFound, sessionLocked }
 
 abstract interface class ActivityRepository {
   Future<List<Activity>> getActivities();

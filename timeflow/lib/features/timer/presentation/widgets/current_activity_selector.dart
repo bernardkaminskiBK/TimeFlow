@@ -6,6 +6,7 @@ import '../../../activities/domain/models/activity.dart';
 import '../../../activities/presentation/activity_visuals.dart';
 import '../../../activities/presentation/cubit/activity_cubit.dart';
 import '../../../activities/presentation/cubit/activity_state.dart';
+import '../cubit/stopwatch_cubit.dart';
 
 class CurrentActivitySelector extends StatelessWidget {
   const CurrentActivitySelector({super.key});
@@ -26,6 +27,9 @@ class CurrentActivitySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLocked = context.select<StopwatchCubit, bool>(
+      (cubit) => cubit.state.hasSession,
+    );
     return BlocBuilder<ActivityCubit, ActivityState>(
       buildWhen:
           (previous, current) =>
@@ -43,7 +47,7 @@ class CurrentActivitySelector extends StatelessWidget {
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
-              onTap: () => _showPicker(context),
+              onTap: isLocked ? null : () => _showPicker(context),
               borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -92,10 +96,12 @@ class CurrentActivitySelector extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: 8),
-                    const Icon(
-                      Icons.expand_more_rounded,
+                    Icon(
+                      isLocked
+                          ? Icons.lock_outline_rounded
+                          : Icons.expand_more_rounded,
                       color: AppColors.textSecondary,
-                      size: 20,
+                      size: isLocked ? 16 : 20,
                     ),
                   ],
                 ),

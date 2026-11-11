@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timeflow/app/app.dart';
+import 'package:timeflow/features/timer/presentation/widgets/current_activity_selector.dart';
 
 void main() {
   testWidgets('renders the TimeFlow home screen', (tester) async {
@@ -53,5 +54,45 @@ void main() {
 
     expect(find.text('English').hitTestable(), findsOneWidget);
     expect(find.text('Choose activity'), findsNothing);
+  });
+
+  testWidgets('keeps a running session across navigation tabs', (tester) async {
+    await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Start focus'));
+    await tester.pump();
+    await tester.tap(find.text('Start focus').hitTestable());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Pause').hitTestable(), findsOneWidget);
+    expect(find.text('Stop').hitTestable(), findsOneWidget);
+
+    await tester.ensureVisible(find.byType(CurrentActivitySelector));
+    await tester.pump();
+    await tester.tap(find.byType(CurrentActivitySelector));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Choose activity'), findsNothing);
+
+    await tester.tap(find.text('History').hitTestable());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Your time, your story.').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Home').hitTestable());
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Pause').hitTestable(), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Stop').hitTestable());
+    await tester.tap(find.text('Stop').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Save').hitTestable(), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Discard session').hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.text('Resume').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Discard session').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Start focus').hitTestable(), findsOneWidget);
   });
 }

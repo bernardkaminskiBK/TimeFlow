@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/activities/data/repositories/in_memory_activity_repository.dart';
 import '../features/activities/domain/repositories/activity_repository.dart';
@@ -8,6 +11,7 @@ import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/time_entries/data/repositories/in_memory_time_entry_repository.dart';
 import '../features/time_entries/domain/repositories/time_entry_repository.dart';
+import '../features/timer/data/repositories/shared_preferences_stopwatch_session_repository.dart';
 import '../features/timer/presentation/cubit/stopwatch_cubit.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
 import 'splash/timeflow_splash.dart';
@@ -15,7 +19,9 @@ import 'theme/app_theme.dart';
 import 'widgets/timeflow_navigation.dart';
 
 class TimeFlowApp extends StatefulWidget {
-  const TimeFlowApp({super.key});
+  const TimeFlowApp({this.preferences, super.key});
+
+  final SharedPreferences? preferences;
 
   @override
   State<TimeFlowApp> createState() => _TimeFlowAppState();
@@ -37,7 +43,15 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
     _activityRepository = InMemoryActivityRepository(
       hasTimeEntries: _timeEntryRepository.hasEntriesForActivity,
     );
-    _stopwatchCubit = StopwatchCubit(_timeEntryRepository);
+    final preferences = widget.preferences;
+    _stopwatchCubit = StopwatchCubit(
+      _timeEntryRepository,
+      sessionRepository:
+          preferences == null
+              ? null
+              : SharedPreferencesStopwatchSessionRepository(preferences),
+    );
+    unawaited(_stopwatchCubit.restore());
     _activityCubit = ActivityCubit(
       _activityRepository,
       hasSession: () => _stopwatchCubit.hasSession,

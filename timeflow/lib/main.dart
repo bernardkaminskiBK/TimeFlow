@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final preferences = await SharedPreferences.getInstance();
 
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
@@ -20,5 +22,5 @@ Future<void> main() async {
     ),
   );
 
-  runApp(const TimeFlowApp());
+  runApp(TimeFlowApp(preferences: preferences));
 }

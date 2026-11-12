@@ -1,12 +1,39 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../time_entries/domain/models/time_entry.dart';
 
 class WeeklySummaryCard extends StatelessWidget {
-  const WeeklySummaryCard({super.key});
+  const WeeklySummaryCard({
+    required this.entries,
+    required this.selectedDate,
+    super.key,
+  });
+
+  final List<TimeEntry> entries;
+  final DateTime selectedDate;
 
   @override
   Widget build(BuildContext context) {
+    final selectedDay = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+    final weekStart = selectedDay.subtract(
+      Duration(days: selectedDay.weekday - DateTime.monday),
+    );
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    final weekEntries = entries.where(
+      (entry) =>
+          !entry.startedAt.isBefore(weekStart) &&
+          entry.startedAt.isBefore(weekEnd),
+    );
+    final total = weekEntries.fold(
+      Duration.zero,
+      (sum, entry) => sum + entry.duration,
+    );
+    final count = weekEntries.length;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -44,17 +71,31 @@ class WeeklySummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
-            child: _SummaryValue(label: 'THIS WEEK', value: '18h 45m'),
+          Expanded(
+            child: _SummaryValue(
+              label: 'SELECTED WEEK',
+              value: _formatDuration(total),
+            ),
           ),
           Container(width: 1, height: 42, color: AppColors.stroke),
           const SizedBox(width: 20),
-          const Expanded(
-            child: _SummaryValue(label: 'COMPLETED', value: '12 sessions'),
+          Expanded(
+            child: _SummaryValue(
+              label: 'COMPLETED',
+              value: '$count ${count == 1 ? 'session' : 'sessions'}',
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours == 0) return '${minutes}m';
+    if (minutes == 0) return '${hours}h';
+    return '${hours}h ${minutes}m';
   }
 }
 

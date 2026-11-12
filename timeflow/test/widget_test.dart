@@ -77,6 +77,19 @@ void main() {
       find.text('Your manual entry was successfully saved.').hitTestable(),
       findsOneWidget,
     );
+
+    await tester.tap(find.text('History').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Programming').hitTestable(), findsOneWidget);
+    expect(find.text('30m').hitTestable(), findsWidgets);
+
+    await tester.tap(find.text('${DateTime.now().day}').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Timeline').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('Timeline').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Timeline'), findsNothing);
   });
 
   testWidgets('keeps a running session across navigation tabs', (tester) async {

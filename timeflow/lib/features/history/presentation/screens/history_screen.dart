@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
-import '../../../time_entries/presentation/widgets/manual_time_entry_sheet.dart';
-import '../../../timer/presentation/cubit/stopwatch_cubit.dart';
+import '../../../activities/presentation/cubit/activity_cubit.dart';
+import '../../../activities/presentation/cubit/activity_state.dart';
+import '../../../time_entries/presentation/cubit/time_entry_cubit.dart';
 import '../widgets/activity_history_list.dart';
 import '../widgets/history_date_selector.dart';
 import '../widgets/weekly_summary_card.dart';
@@ -19,41 +20,20 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  late final ScrollController _scrollController;
-  var _showAddButton = true;
+  DateTime? _selectedDate;
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_handleScroll);
-  }
-
-  void _handleScroll() {
-    if (!_scrollController.hasClients) return;
-
-    final position = _scrollController.position;
-    final isAtBottom =
-        position.maxScrollExtent > 0 && position.extentAfter <= 12;
-    final shouldShow = !isAtBottom;
-
-    if (shouldShow != _showAddButton) {
-      setState(() => _showAddButton = shouldShow);
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController
-      ..removeListener(_handleScroll)
-      ..dispose();
-    super.dispose();
+  Future<void> _chooseDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (date != null && mounted) setState(() => _selectedDate = date);
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasSession = context.select<StopwatchCubit, bool>(
-      (cubit) => cubit.state.hasSession,
-    );
     return Scaffold(
       extendBody: true,
       body: DecoratedBox(
@@ -76,7 +56,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 mediaQuery.systemGestureInsets.bottom,
               );
               return SingleChildScrollView(
-                controller: _scrollController,
                 padding: EdgeInsets.fromLTRB(
                   side,
                   20,
@@ -86,16 +65,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _HistoryHeader(),
-                        SizedBox(height: 26),
-                        WeeklySummaryCard(),
-                        SizedBox(height: 26),
-                        HistoryDateSelector(),
-                        SizedBox(height: 28),
-                        ActivityHistoryList(),
+                        const _HistoryHeader(),
+                        const SizedBox(height: 26),
+                        BlocBuilder<TimeEntryCubit, TimeEntryState>(
+                          buildWhen:
+                              (previous, current) =>
+                                  previous.entries != current.entries,
+                          builder:
+                              (context, state) => WeeklySummaryCard(
+                                entries: state.entries,
+                                selectedDate: _selectedDate ?? DateTime.now(),
+                              ),
+                        ),
+                        const SizedBox(height: 26),
+                        HistoryDateSelector(
+                          key: ValueKey(_selectedDate == null),
+                          selectedDate: _selectedDate,
+                          onDateSelected:
+                              (date) => setState(() => _selectedDate = date),
+                          onCalendarPressed: _chooseDate,
+                        ),
+                        const SizedBox(height: 28),
+                        if (_selectedDate != null) ...[
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: _TimelineChip(
+                              onTap: () => setState(() => _selectedDate = null),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        BlocBuilder<TimeEntryCubit, TimeEntryState>(
+                          builder: (context, timeEntryState) {
+                            final selectedDate = _selectedDate;
+                            final visibleEntries =
+                                selectedDate == null
+                                    ? timeEntryState.entries
+                                    : timeEntryState.entries
+                                        .where(
+                                          (entry) =>
+                                              !entry.startedAt.isBefore(
+                                                selectedDate,
+                                              ) &&
+                                              entry.startedAt.isBefore(
+                                                selectedDate.add(
+                                                  const Duration(days: 1),
+                                                ),
+                                              ),
+                                        )
+                                        .toList(growable: false);
+                            return BlocBuilder<ActivityCubit, ActivityState>(
+                              builder:
+                                  (context, activityState) =>
+                                      ActivityHistoryList(
+                                        entries: visibleEntries,
+                                        activities: activityState.activities,
+                                        isDayFocus: selectedDate != null,
+                                      ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -105,92 +137,61 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(
-          bottom: TimeFlowNavigation.clearanceHeight,
-        ),
-        child: IgnorePointer(
-          ignoring: !_showAddButton,
-          child: AnimatedSlide(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
-            offset: _showAddButton ? Offset.zero : const Offset(0, 0.7),
-            child: AnimatedScale(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              scale: _showAddButton ? 1 : 0.82,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 210),
-                curve: Curves.easeOut,
-                opacity: _showAddButton ? 1 : 0,
-                child: _AddEntryButton(
-                  onPressed:
-                      hasSession
-                          ? null
-                          : () => showManualTimeEntrySheet(context),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
+}
+
+class _TimelineChip extends StatelessWidget {
+  const _TimelineChip({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.primary.withValues(alpha: 0.12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: BorderSide(color: AppColors.cyan.withValues(alpha: 0.24)),
+    ),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.timeline_rounded, color: AppColors.cyan, size: 16),
+            SizedBox(width: 7),
+            Text(
+              'Timeline',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(width: 5),
+            Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 15),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _HistoryHeader extends StatelessWidget {
   const _HistoryHeader();
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('History', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 5),
-        Text(
-          'Your time, your story.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ],
-    );
-  }
-}
-
-class _AddEntryButton extends StatelessWidget {
-  const _AddEntryButton({required this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.cyan, AppColors.primary],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.38),
-            blurRadius: 22,
-            offset: const Offset(0, 8),
-          ),
-        ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('History', style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 5),
+      Text(
+        'Your time, your story.',
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
-      child: FloatingActionButton(
-        onPressed: onPressed,
-        tooltip: 'Add manual entry',
-        elevation: 0,
-        highlightElevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded, size: 28),
-      ),
-    );
-  }
+    ],
+  );
 }

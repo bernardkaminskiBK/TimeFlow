@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/models/time_entry.dart';
@@ -6,18 +8,26 @@ import '../../domain/repositories/time_entry_repository.dart';
 enum ManualEntryResult { success, sessionActive, invalidInput, failure }
 
 class TimeEntryState {
-  const TimeEntryState({this.isSaving = false});
+  const TimeEntryState({this.isSaving = false, this.entries = const []});
   final bool isSaving;
+  final List<TimeEntry> entries;
 }
 
 class TimeEntryCubit extends Cubit<TimeEntryState> {
   TimeEntryCubit(this._repository, {required bool Function() hasSession})
     : _hasSession = hasSession,
-      super(const TimeEntryState());
+      super(const TimeEntryState()) {
+    _subscription = _repository.watchEntries().listen((entries) {
+      if (!isClosed) {
+        emit(TimeEntryState(isSaving: state.isSaving, entries: entries));
+      }
+    });
+  }
 
   final TimeEntryRepository _repository;
   final bool Function() _hasSession;
   var _idSequence = 0;
+  late final StreamSubscription<List<TimeEntry>> _subscription;
 
   Future<ManualEntryResult> addManualEntry({
     required String activityId,
@@ -33,7 +43,7 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
       return ManualEntryResult.invalidInput;
     }
 
-    emit(const TimeEntryState(isSaving: true));
+    emit(TimeEntryState(isSaving: true, entries: state.entries));
     try {
       final createdAt = DateTime.now();
       await _repository.saveEntry(
@@ -50,7 +60,13 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
     } catch (_) {
       return ManualEntryResult.failure;
     } finally {
-      emit(const TimeEntryState());
+      emit(TimeEntryState(entries: state.entries));
     }
+  }
+
+  @override
+  Future<void> close() {
+    unawaited(_subscription.cancel());
+    return super.close();
   }
 }

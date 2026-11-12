@@ -2,56 +2,137 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
 
-class HistoryDateSelector extends StatelessWidget {
-  const HistoryDateSelector({super.key});
+class HistoryDateSelector extends StatefulWidget {
+  const HistoryDateSelector({
+    required this.selectedDate,
+    required this.onDateSelected,
+    required this.onCalendarPressed,
+    super.key,
+  });
 
-  static const _days = [
-    ('THU', '6'),
-    ('FRI', '7'),
-    ('SAT', '8'),
-    ('SUN', '9'),
-    ('MON', '10'),
-    ('TUE', '11'),
-    ('WED', '12'),
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime> onDateSelected;
+  final VoidCallback onCalendarPressed;
+
+  @override
+  State<HistoryDateSelector> createState() => _HistoryDateSelectorState();
+}
+
+class _HistoryDateSelectorState extends State<HistoryDateSelector> {
+  static const _weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  static const _months = [
+    'JANUARY',
+    'FEBRUARY',
+    'MARCH',
+    'APRIL',
+    'MAY',
+    'JUNE',
+    'JULY',
+    'AUGUST',
+    'SEPTEMBER',
+    'OCTOBER',
+    'NOVEMBER',
+    'DECEMBER',
   ];
+  late DateTime _rangeEnd;
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _rangeEnd = _dateOnly(DateTime.now());
+    final selectedDate = widget.selectedDate;
+    if (selectedDate != null && !_isVisible(selectedDate)) {
+      _rangeEnd = _dateOnly(selectedDate);
+    }
+    _scrollToLatestDay();
+  }
+
+  @override
+  void didUpdateWidget(covariant HistoryDateSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final selectedDate = widget.selectedDate;
+    if (selectedDate != null && !_isVisible(selectedDate)) {
+      _rangeEnd = _dateOnly(selectedDate);
+      _scrollToLatestDay();
+    }
+  }
+
+  void _scrollToLatestDay() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  bool _isVisible(DateTime date) {
+    final day = _dateOnly(date);
+    final start = _rangeEnd.subtract(const Duration(days: 6));
+    return !day.isBefore(start) && !day.isAfter(_rangeEnd);
+  }
+
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   @override
   Widget build(BuildContext context) {
+    final days = List.generate(
+      7,
+      (index) => _rangeEnd.subtract(Duration(days: 6 - index)),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
             Text(
-              'NOVEMBER 2026',
-              style: TextStyle(
+              '${_months[(widget.selectedDate ?? _rangeEnd).month - 1]} '
+              '${(widget.selectedDate ?? _rangeEnd).year}',
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.4,
               ),
             ),
-            Spacer(),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 16,
-              color: AppColors.textSecondary,
+            const Spacer(),
+            IconButton(
+              tooltip: 'Choose date',
+              onPressed: widget.onCalendarPressed,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(
+                Icons.calendar_today_outlined,
+                size: 17,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
         SizedBox(
           height: 70,
           child: ListView.separated(
+            controller: _scrollController,
             scrollDirection: Axis.horizontal,
-            itemCount: _days.length,
+            itemCount: days.length,
             separatorBuilder: (_, _) => const SizedBox(width: 9),
             itemBuilder: (context, index) {
-              final day = _days[index];
+              final day = days[index];
               return _DateTile(
-                weekday: day.$1,
-                day: day.$2,
-                isSelected: index == 4,
+                weekday: _weekdays[day.weekday - 1],
+                day: '${day.day}',
+                isSelected:
+                    widget.selectedDate != null &&
+                    DateUtils.isSameDay(day, widget.selectedDate),
+                isToday: DateUtils.isSameDay(day, DateTime.now()),
+                onTap: () => widget.onDateSelected(day),
               );
             },
           ),
@@ -66,68 +147,78 @@ class _DateTile extends StatelessWidget {
     required this.weekday,
     required this.day,
     required this.isSelected,
+    required this.isToday,
+    required this.onTap,
   });
-
   final String weekday;
   final String day;
   final bool isSelected;
+  final bool isToday;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      width: 52,
-      decoration: BoxDecoration(
-        gradient:
-            isSelected
-                ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF459BFF), Color(0xFF285FEA)],
-                )
-                : null,
-        color: isSelected ? null : AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color:
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        width: 52,
+        decoration: BoxDecoration(
+          gradient:
               isSelected
-                  ? AppColors.cyan.withValues(alpha: 0.46)
-                  : AppColors.stroke.withValues(alpha: 0.72),
+                  ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF459BFF), Color(0xFF285FEA)],
+                  )
+                  : null,
+          color: isSelected ? null : AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color:
+                isSelected
+                    ? AppColors.cyan.withValues(alpha: 0.46)
+                    : isToday
+                    ? AppColors.cyan.withValues(alpha: 0.26)
+                    : AppColors.stroke.withValues(alpha: 0.72),
+          ),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 7),
+                    ),
+                  ]
+                  : null,
         ),
-        boxShadow:
-            isSelected
-                ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 7),
-                  ),
-                ]
-                : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            weekday,
-            style: TextStyle(
-              color: isSelected ? Colors.white70 : AppColors.textSecondary,
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              weekday,
+              style: TextStyle(
+                color: isSelected ? Colors.white70 : AppColors.textSecondary,
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
             ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            day,
-            style: TextStyle(
-              color: isSelected ? Colors.white : AppColors.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+            const SizedBox(height: 5),
+            Text(
+              day,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
 }

@@ -177,23 +177,62 @@ class _ActivityEditorSheetState extends State<ActivityEditorSheet> {
                         }).toList(),
                   ),
                   const SizedBox(height: 30),
-                  FilledButton(
-                    onPressed: _isSaving ? null : _save,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _isSaving ? AppColors.elevatedSurface : null,
+                      gradient:
+                          _isSaving
+                              ? null
+                              : const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF58C8FF), Color(0xFF2865EC)],
+                              ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color:
+                            _isSaving
+                                ? AppColors.stroke
+                                : const Color(0xFF5A91FA),
                       ),
+                      boxShadow:
+                          _isSaving
+                              ? null
+                              : [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
                     ),
-                    child: Text(
-                      _isSaving
-                          ? 'Saving…'
-                          : widget.activity == null
-                          ? 'Add activity'
-                          : 'Save changes',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isSaving ? null : _save,
+                        borderRadius: BorderRadius.circular(18),
+                        child: SizedBox(
+                          height: 54,
+                          child: Center(
+                            child: Text(
+                              _isSaving
+                                  ? 'Saving…'
+                                  : widget.activity == null
+                                  ? 'Add activity'
+                                  : 'Save changes',
+                              style: TextStyle(
+                                color:
+                                    _isSaving
+                                        ? AppColors.textSecondary
+                                        : Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

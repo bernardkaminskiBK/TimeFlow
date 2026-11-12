@@ -135,6 +135,13 @@ class _DialPainter extends CustomPainter {
     final previousColor = Color(
       ActivityVisuals.colors[(cycleIndex - 1) % ActivityVisuals.colors.length],
     );
+    final progressColors =
+        cycleIndex == 0
+            ? const [Color(0xFF58C8FF), Color(0xFF2865EC)]
+            : [
+              Color.lerp(currentColor, Colors.white, 0.24)!,
+              Color.lerp(currentColor, Colors.black, 0.48)!,
+            ];
 
     canvas.drawCircle(
       center,
@@ -179,23 +186,35 @@ class _DialPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
     if (progress > 0) {
+      final progressStartAngle = -math.pi * 0.72;
+      final progressSweepAngle = math.pi * 1.44 * progress;
       canvas.drawArc(
         arcRect,
-        -math.pi * 0.72,
-        math.pi * 1.44 * progress,
+        progressStartAngle,
+        progressSweepAngle,
+        false,
+        Paint()
+          ..color = currentColor.withValues(alpha: 0.34)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = radius * 0.085
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+      );
+      canvas.drawArc(
+        arcRect,
+        progressStartAngle,
+        progressSweepAngle,
         false,
         Paint()
           ..shader = SweepGradient(
-            colors: [
-              currentColor.withValues(alpha: 0.72),
-              currentColor,
-              currentColor.withValues(alpha: 0.86),
-            ],
+            colors: progressColors,
+            startAngle: progressStartAngle + 3.0,
+            endAngle: progressStartAngle + math.pi * 1.44 + 2.0,
+            transform: GradientRotation(-150 * math.pi / 180),
           ).createShader(arcRect)
           ..style = PaintingStyle.stroke
           ..strokeWidth = radius * 0.06
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
+          ..strokeCap = StrokeCap.round,
       );
     }
 

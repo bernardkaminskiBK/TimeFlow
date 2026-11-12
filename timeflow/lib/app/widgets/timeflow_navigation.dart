@@ -12,6 +12,9 @@ class TimeFlowNavigation extends StatelessWidget {
   });
 
   static const clearanceHeight = 100.0;
+  // TODO: Move transient notifications to an app-level overlay or root
+  // Scaffold so Snackbar placement does not depend on navigation clearance.
+  static const snackBarClearanceHeight = clearanceHeight - 8.0;
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;

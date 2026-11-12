@@ -112,7 +112,7 @@ class _SessionControls extends StatelessWidget {
             20,
             0,
             20,
-            bottomInset + TimeFlowNavigation.clearanceHeight,
+            bottomInset + TimeFlowNavigation.snackBarClearanceHeight,
           ),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(18)),

@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../activities/presentation/cubit/activity_cubit.dart';
+import '../../../activities/presentation/cubit/activity_state.dart';
+import '../../../time_entries/domain/models/time_entry.dart';
+import '../../../time_entries/presentation/cubit/time_entry_cubit.dart';
 
 class DailySummaryCard extends StatelessWidget {
   const DailySummaryCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<TimeEntryCubit, TimeEntryState>(
+      buildWhen: (previous, current) => previous.entries != current.entries,
+      builder: (context, timeEntryState) {
+        return BlocBuilder<ActivityCubit, ActivityState>(
+          buildWhen:
+              (previous, current) => previous.activities != current.activities,
+          builder: (context, activityState) {
+            final summary = _DailySummary.from(
+              timeEntryState.entries,
+              activityState,
+              DateTime.now(),
+            );
+            return _SummaryCard(summary: summary);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.summary});
+
+  final _DailySummary summary;
 
   @override
   Widget build(BuildContext context) {
@@ -42,20 +74,27 @@ class DailySummaryCard extends StatelessWidget {
           const SizedBox(height: 18),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: _SummaryMetric(
                   label: 'TOTAL TIME',
-                  value: '4h 35m',
-                  detail: '+42m from yesterday',
+                  value: _formatDuration(summary.todayTotal),
+                  detail: _comparisonText(
+                    summary.todayTotal,
+                    summary.yesterdayTotal,
+                  ),
                 ),
               ),
               Container(width: 1, height: 54, color: AppColors.stroke),
               const SizedBox(width: 20),
-              const Expanded(
+              Expanded(
                 child: _SummaryMetric(
                   label: 'SESSIONS',
-                  value: '3',
-                  detail: '2h 10m programming',
+                  value: '${summary.sessionCount}',
+                  detail:
+                      summary.topActivityName == null
+                          ? 'No sessions yet'
+                          : '${_formatDuration(summary.topActivityDuration)} '
+                              '${summary.topActivityName}',
                 ),
               ),
             ],
@@ -64,6 +103,98 @@ class DailySummaryCard extends StatelessWidget {
       ),
     );
   }
+
+  String _comparisonText(Duration today, Duration yesterday) {
+    final difference = today - yesterday;
+    if (difference == Duration.zero) return 'Same as yesterday';
+    final prefix = difference.isNegative ? '-' : '+';
+    return '$prefix${_formatDuration(difference.abs())} from yesterday';
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final parts = <String>[];
+    if (hours > 0) parts.add('${hours}h');
+    if (minutes > 0) parts.add('${minutes}m');
+    if (seconds > 0 && hours == 0) parts.add('${seconds}s');
+    return parts.isEmpty ? '0m' : parts.join(' ');
+  }
+}
+
+class _DailySummary {
+  const _DailySummary({
+    required this.todayTotal,
+    required this.yesterdayTotal,
+    required this.sessionCount,
+    required this.topActivityDuration,
+    this.topActivityName,
+  });
+
+  factory _DailySummary.from(
+    List<TimeEntry> entries,
+    ActivityState activityState,
+    DateTime now,
+  ) {
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final yesterday = today.subtract(const Duration(days: 1));
+    final todayEntries = entries.where(
+      (entry) =>
+          !entry.endedAt.isBefore(today) && entry.endedAt.isBefore(tomorrow),
+    );
+    final yesterdayEntries = entries.where(
+      (entry) =>
+          !entry.endedAt.isBefore(yesterday) && entry.endedAt.isBefore(today),
+    );
+    final durationsByActivity = <String, Duration>{};
+    var todayTotal = Duration.zero;
+    var sessionCount = 0;
+    for (final entry in todayEntries) {
+      todayTotal += entry.duration;
+      sessionCount++;
+      durationsByActivity.update(
+        entry.activityId,
+        (duration) => duration + entry.duration,
+        ifAbsent: () => entry.duration,
+      );
+    }
+    final yesterdayTotal = yesterdayEntries.fold(
+      Duration.zero,
+      (total, entry) => total + entry.duration,
+    );
+    String? topActivityId;
+    var topActivityDuration = Duration.zero;
+    for (final entry in durationsByActivity.entries) {
+      if (entry.value > topActivityDuration) {
+        topActivityId = entry.key;
+        topActivityDuration = entry.value;
+      }
+    }
+    String? topActivityName;
+    if (topActivityId != null) {
+      for (final activity in activityState.activities) {
+        if (activity.id == topActivityId) {
+          topActivityName = activity.name;
+          break;
+        }
+      }
+    }
+    return _DailySummary(
+      todayTotal: todayTotal,
+      yesterdayTotal: yesterdayTotal,
+      sessionCount: sessionCount,
+      topActivityDuration: topActivityDuration,
+      topActivityName: topActivityName,
+    );
+  }
+
+  final Duration todayTotal;
+  final Duration yesterdayTotal;
+  final int sessionCount;
+  final Duration topActivityDuration;
+  final String? topActivityName;
 }
 
 class _SummaryMetric extends StatelessWidget {
@@ -92,7 +223,11 @@ class _SummaryMetric extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(value, style: Theme.of(context).textTheme.titleLarge),
+        ),
         const SizedBox(height: 4),
         Text(
           detail,

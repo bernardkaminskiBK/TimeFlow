@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../../app/widgets/timeflow_navigation.dart';
 import '../../../activities/presentation/cubit/activity_cubit.dart';
 import '../cubit/stopwatch_cubit.dart';
 import '../cubit/stopwatch_state.dart';
@@ -78,6 +79,46 @@ class _SessionControls extends StatelessWidget {
   final StopwatchState state;
   final VoidCallback onManageActivities;
 
+  Future<void> _save(BuildContext context) async {
+    final result = await context.read<StopwatchCubit>().save();
+    if (!context.mounted || result != StopwatchCommandResult.success) return;
+
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: AppColors.cyan),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Your session was successfully saved.',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.elevatedSurface,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            bottomInset + TimeFlowNavigation.clearanceHeight,
+          ),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(18)),
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<StopwatchCubit>();
@@ -102,7 +143,7 @@ class _SessionControls extends StatelessWidget {
             icon: Icons.check_rounded,
             label: 'Save',
             primary: true,
-            onTap: () => cubit.save(),
+            onTap: () => _save(context),
           ),
         ],
       );

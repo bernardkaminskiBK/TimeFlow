@@ -37,7 +37,6 @@ class StopwatchCubit extends Cubit<StopwatchState> {
   Duration _accumulated = Duration.zero;
   DateTime? _lastResumedAt;
   SessionClockSnapshot? _lastClockSnapshot;
-  var _entrySequence = 0;
   var _isSaving = false;
   var _isRestoring = false;
 
@@ -182,7 +181,7 @@ class StopwatchCubit extends Cubit<StopwatchState> {
       final createdAt = _now();
       await _repository.saveEntry(
         TimeEntry(
-          id: 'entry-${createdAt.microsecondsSinceEpoch}-${_entrySequence++}',
+          id: 'session-${startedAt.microsecondsSinceEpoch}-$activityId',
           activityId: activityId,
           startedAt: startedAt,
           endedAt: endedAt,

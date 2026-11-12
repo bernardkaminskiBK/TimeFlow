@@ -4,24 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../features/activities/data/repositories/in_memory_activity_repository.dart';
+import '../features/activities/data/repositories/drift_activity_repository.dart';
 import '../features/activities/domain/repositories/activity_repository.dart';
 import '../features/activities/presentation/cubit/activity_cubit.dart';
 import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
-import '../features/time_entries/data/repositories/in_memory_time_entry_repository.dart';
+import '../features/time_entries/data/repositories/drift_time_entry_repository.dart';
 import '../features/time_entries/domain/repositories/time_entry_repository.dart';
 import '../features/timer/data/repositories/shared_preferences_stopwatch_session_repository.dart';
 import '../features/timer/presentation/cubit/stopwatch_cubit.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
 import 'splash/timeflow_splash.dart';
+import 'database/app_database.dart';
 import 'theme/app_theme.dart';
 import 'widgets/timeflow_navigation.dart';
 
 class TimeFlowApp extends StatefulWidget {
-  const TimeFlowApp({this.preferences, super.key});
+  const TimeFlowApp({this.preferences, this.database, super.key});
 
   final SharedPreferences? preferences;
+  final AppDatabase? database;
 
   @override
   State<TimeFlowApp> createState() => _TimeFlowAppState();
@@ -32,6 +34,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
   late final ActivityCubit _activityCubit;
   late final TimeEntryRepository _timeEntryRepository;
   late final StopwatchCubit _stopwatchCubit;
+  late final AppDatabase _database;
   var _selectedIndex = 0;
   var _showStartup = true;
 
@@ -39,10 +42,9 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _timeEntryRepository = InMemoryTimeEntryRepository();
-    _activityRepository = InMemoryActivityRepository(
-      hasTimeEntries: _timeEntryRepository.hasEntriesForActivity,
-    );
+    _database = widget.database ?? AppDatabase.inMemory();
+    _timeEntryRepository = DriftTimeEntryRepository(_database);
+    _activityRepository = DriftActivityRepository(_database);
     final preferences = widget.preferences;
     _stopwatchCubit = StopwatchCubit(
       _timeEntryRepository,
@@ -71,6 +73,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _activityCubit.close();
     _stopwatchCubit.close();
+    _database.close();
     super.dispose();
   }
 

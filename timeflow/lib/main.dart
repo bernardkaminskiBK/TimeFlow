@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
+import 'app/database/app_database.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,5 +23,5 @@ Future<void> main() async {
     ),
   );
 
-  runApp(TimeFlowApp(preferences: preferences));
+  runApp(TimeFlowApp(preferences: preferences, database: AppDatabase()));
 }

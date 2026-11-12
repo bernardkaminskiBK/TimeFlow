@@ -65,6 +65,7 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
   final _formKey = GlobalKey<FormState>();
   final _hoursController = TextEditingController(text: '0');
   final _minutesController = TextEditingController(text: '30');
+  final _noteController = TextEditingController();
   late DateTime _date;
   late TimeOfDay _time;
   String? _activityId;
@@ -73,13 +74,9 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
   @override
   void initState() {
     super.initState();
-    final suggestedStart = DateTime.now().subtract(const Duration(minutes: 30));
-    _date = DateTime(
-      suggestedStart.year,
-      suggestedStart.month,
-      suggestedStart.day,
-    );
-    _time = TimeOfDay.fromDateTime(suggestedStart);
+    final now = DateTime.now();
+    _date = DateTime(now.year, now.month, now.day);
+    _time = TimeOfDay.fromDateTime(now);
     _activityId = context.read<ActivityCubit>().state.selectedActivityId;
   }
 
@@ -87,6 +84,7 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
   void dispose() {
     _hoursController.dispose();
     _minutesController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -125,14 +123,14 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
       hours: int.parse(_hoursController.text),
       minutes: int.parse(_minutesController.text),
     );
-    final startedAt = DateTime(
+    final endedAt = DateTime(
       _date.year,
       _date.month,
       _date.day,
       _time.hour,
       _time.minute,
     );
-    if (startedAt.add(duration).isAfter(DateTime.now())) {
+    if (endedAt.isAfter(DateTime.now())) {
       setState(() => _error = 'A manual entry cannot end in the future.');
       return;
     }
@@ -140,8 +138,9 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
     setState(() => _error = null);
     final result = await context.read<TimeEntryCubit>().addManualEntry(
       activityId: activityId,
-      startedAt: startedAt,
+      endedAt: endedAt,
       duration: duration,
+      note: _noteController.text,
     );
     if (!mounted) return;
     switch (result) {
@@ -213,7 +212,7 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
                     onChanged: (value) => setState(() => _activityId = value),
                   ),
                   const SizedBox(height: 22),
-                  const _SectionLabel('WHEN'),
+                  const _SectionLabel('COMPLETED AT'),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -255,6 +254,20 @@ class _ManualTimeEntrySheetState extends State<ManualTimeEntrySheet> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 22),
+                  const _SectionLabel('NOTE · OPTIONAL'),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _noteController,
+                    minLines: 3,
+                    maxLines: 5,
+                    maxLength: 500,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: _fieldDecoration(
+                      'What would you like to remember?',
+                    ).copyWith(alignLabelWithHint: true),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 14),

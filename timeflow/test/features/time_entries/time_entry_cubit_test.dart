@@ -8,11 +8,11 @@ void main() {
       final repository = InMemoryTimeEntryRepository();
       final cubit = TimeEntryCubit(repository, hasSession: () => false);
       addTearDown(cubit.close);
-      final startedAt = DateTime(2026, 11, 12, 9, 30);
+      final endedAt = DateTime(2026, 11, 12, 10, 45);
 
       final result = await cubit.addManualEntry(
         activityId: 'activity-english',
-        startedAt: startedAt,
+        endedAt: endedAt,
         duration: const Duration(hours: 1, minutes: 15),
       );
 
@@ -20,8 +20,8 @@ void main() {
       expect(result, ManualEntryResult.success);
       expect(entries, hasLength(1));
       expect(entries.single.activityId, 'activity-english');
-      expect(entries.single.startedAt, startedAt);
-      expect(entries.single.endedAt, DateTime(2026, 11, 12, 10, 45));
+      expect(entries.single.startedAt, DateTime(2026, 11, 12, 9, 30));
+      expect(entries.single.endedAt, endedAt);
       expect(entries.single.duration, const Duration(hours: 1, minutes: 15));
     });
 
@@ -32,7 +32,7 @@ void main() {
 
       final result = await cubit.addManualEntry(
         activityId: 'activity-programming',
-        startedAt: DateTime(2026, 11, 12, 9),
+        endedAt: DateTime(2026, 11, 12, 9, 30),
         duration: const Duration(minutes: 30),
       );
 
@@ -47,7 +47,7 @@ void main() {
 
       final result = await cubit.addManualEntry(
         activityId: 'activity-programming',
-        startedAt: DateTime(2026, 11, 12, 9),
+        endedAt: DateTime(2026, 11, 12, 9),
         duration: Duration.zero,
       );
 
@@ -62,12 +62,53 @@ void main() {
 
       final result = await cubit.addManualEntry(
         activityId: 'activity-programming',
-        startedAt: DateTime.now(),
+        endedAt: DateTime.now().add(const Duration(minutes: 1)),
         duration: const Duration(minutes: 30),
       );
 
       expect(result, ManualEntryResult.invalidInput);
       expect(await repository.getEntries(), isEmpty);
+    });
+
+    test('adds, updates, and clears a session note', () async {
+      final repository = InMemoryTimeEntryRepository();
+      final cubit = TimeEntryCubit(repository, hasSession: () => false);
+      addTearDown(cubit.close);
+      final endedAt = DateTime(2026, 11, 12, 9, 30);
+
+      await cubit.addManualEntry(
+        activityId: 'activity-programming',
+        endedAt: endedAt,
+        duration: const Duration(minutes: 30),
+        note: '  Initial note  ',
+      );
+      final entry = (await repository.getEntries()).single;
+      expect(entry.note, 'Initial note');
+
+      expect(
+        await cubit.updateNote(entry.id, 'Updated note'),
+        NoteUpdateResult.success,
+      );
+      expect((await repository.getEntries()).single.note, 'Updated note');
+
+      expect(await cubit.updateNote(entry.id, '   '), NoteUpdateResult.success);
+      expect((await repository.getEntries()).single.note, isNull);
+    });
+
+    test('deletes a session and reports a missing entry', () async {
+      final repository = InMemoryTimeEntryRepository();
+      final cubit = TimeEntryCubit(repository, hasSession: () => false);
+      addTearDown(cubit.close);
+      await cubit.addManualEntry(
+        activityId: 'activity-programming',
+        endedAt: DateTime(2026, 11, 12, 9, 0, 12),
+        duration: const Duration(seconds: 12),
+      );
+      final entry = (await repository.getEntries()).single;
+
+      expect(await cubit.deleteEntry(entry.id), EntryDeletionResult.success);
+      expect(await repository.getEntries(), isEmpty);
+      expect(await cubit.deleteEntry(entry.id), EntryDeletionResult.notFound);
     });
   });
 }

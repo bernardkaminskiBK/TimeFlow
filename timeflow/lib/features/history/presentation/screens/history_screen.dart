@@ -10,6 +10,7 @@ import '../../../activities/presentation/cubit/activity_state.dart';
 import '../../../time_entries/presentation/cubit/time_entry_cubit.dart';
 import '../widgets/activity_history_list.dart';
 import '../widgets/history_date_selector.dart';
+import '../widgets/session_detail_sheet.dart';
 import '../widgets/weekly_summary_card.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -107,10 +108,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     : timeEntryState.entries
                                         .where(
                                           (entry) =>
-                                              !entry.startedAt.isBefore(
+                                              !entry.endedAt.isBefore(
                                                 selectedDate,
                                               ) &&
-                                              entry.startedAt.isBefore(
+                                              entry.endedAt.isBefore(
                                                 selectedDate.add(
                                                   const Duration(days: 1),
                                                 ),
@@ -124,6 +125,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         entries: visibleEntries,
                                         activities: activityState.activities,
                                         isDayFocus: selectedDate != null,
+                                        onEntryTap:
+                                            (entry, activity) =>
+                                                showSessionDetailSheet(
+                                                  context,
+                                                  entry: entry,
+                                                  activity: activity,
+                                                ),
                                       ),
                             );
                           },

@@ -8,4 +8,8 @@ abstract interface class TimeEntryRepository {
   Future<bool> hasEntriesForActivity(String activityId);
 
   Future<void> saveEntry(TimeEntry entry);
+
+  Future<bool> updateNote(String entryId, String? note);
+
+  Future<bool> deleteEntry(String entryId);
 }

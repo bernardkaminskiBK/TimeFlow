@@ -26,6 +26,8 @@ void main() {
     );
 
     expect(await entries.getEntries(), hasLength(1));
+    expect(await entries.updateNote('session-test', 'Persisted note'), isTrue);
+    expect((await entries.getEntries()).single.note, 'Persisted note');
     expect(
       await activities.deleteActivity('activity-programming'),
       ActivityDeletionResult.referenced,
@@ -48,5 +50,43 @@ void main() {
     );
 
     expect((await activities.getActivities()).first.id, newestId);
+  });
+
+  test('keeps equal start times in stable creation order', () async {
+    final database = AppDatabase.inMemory();
+    addTearDown(database.close);
+    final entries = DriftTimeEntryRepository(database);
+    final startedAt = DateTime(2026, 11, 12, 16, 8);
+
+    for (final entry in [
+      TimeEntry(
+        id: 'older-entry',
+        activityId: 'activity-programming',
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(minutes: 30)),
+        duration: const Duration(minutes: 30),
+        createdAt: DateTime(2026, 11, 12, 16, 40),
+      ),
+      TimeEntry(
+        id: 'newer-entry',
+        activityId: 'activity-reading',
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(minutes: 30)),
+        duration: const Duration(minutes: 30),
+        createdAt: DateTime(2026, 11, 12, 16, 41),
+      ),
+    ]) {
+      await entries.saveEntry(entry);
+    }
+
+    expect((await entries.getEntries()).map((entry) => entry.id), [
+      'newer-entry',
+      'older-entry',
+    ]);
+    await entries.updateNote('older-entry', 'Edited later');
+    expect((await entries.getEntries()).map((entry) => entry.id), [
+      'newer-entry',
+      'older-entry',
+    ]);
   });
 }

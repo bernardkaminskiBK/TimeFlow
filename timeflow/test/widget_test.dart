@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timeflow/app/app.dart';
 import 'package:timeflow/features/timer/presentation/widgets/current_activity_selector.dart';
@@ -83,6 +84,22 @@ void main() {
     expect(find.text('Programming').hitTestable(), findsOneWidget);
     expect(find.text('30m').hitTestable(), findsWidgets);
 
+    await tester.tap(find.text('Programming').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Save note'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextField).hitTestable(),
+      'A productive session.',
+    );
+    await tester.tap(find.text('Save note').hitTestable());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Programming').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('A productive session.'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('${DateTime.now().day}').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('Timeline').hitTestable(), findsOneWidget);
@@ -90,6 +107,15 @@ void main() {
     await tester.tap(find.text('Timeline').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('Timeline'), findsNothing);
+
+    await tester.tap(find.text('Programming').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete session').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Delete session?'), findsOneWidget);
+    await tester.tap(find.text('Delete').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Programming').hitTestable(), findsNothing);
   });
 
   testWidgets('keeps a running session across navigation tabs', (tester) async {

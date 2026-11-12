@@ -493,6 +493,15 @@ class $TimeEntriesTable extends TimeEntries
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -501,6 +510,7 @@ class $TimeEntriesTable extends TimeEntries
     endedAt,
     durationMilliseconds,
     createdAt,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -562,6 +572,12 @@ class $TimeEntriesTable extends TimeEntries
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
     return context;
   }
 
@@ -601,6 +617,10 @@ class $TimeEntriesTable extends TimeEntries
             DriftSqlType.dateTime,
             data['${effectivePrefix}created_at'],
           )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
     );
   }
 
@@ -617,6 +637,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
   final DateTime endedAt;
   final int durationMilliseconds;
   final DateTime createdAt;
+  final String? note;
   const TimeEntryRow({
     required this.id,
     required this.activityId,
@@ -624,6 +645,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
     required this.endedAt,
     required this.durationMilliseconds,
     required this.createdAt,
+    this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -634,6 +656,9 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
     map['ended_at'] = Variable<DateTime>(endedAt);
     map['duration_milliseconds'] = Variable<int>(durationMilliseconds);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     return map;
   }
 
@@ -645,6 +670,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
       endedAt: Value(endedAt),
       durationMilliseconds: Value(durationMilliseconds),
       createdAt: Value(createdAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
 
@@ -662,6 +688,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
         json['durationMilliseconds'],
       ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      note: serializer.fromJson<String?>(json['note']),
     );
   }
   @override
@@ -674,6 +701,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
       'endedAt': serializer.toJson<DateTime>(endedAt),
       'durationMilliseconds': serializer.toJson<int>(durationMilliseconds),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'note': serializer.toJson<String?>(note),
     };
   }
 
@@ -684,6 +712,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
     DateTime? endedAt,
     int? durationMilliseconds,
     DateTime? createdAt,
+    Value<String?> note = const Value.absent(),
   }) => TimeEntryRow(
     id: id ?? this.id,
     activityId: activityId ?? this.activityId,
@@ -691,6 +720,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
     endedAt: endedAt ?? this.endedAt,
     durationMilliseconds: durationMilliseconds ?? this.durationMilliseconds,
     createdAt: createdAt ?? this.createdAt,
+    note: note.present ? note.value : this.note,
   );
   TimeEntryRow copyWithCompanion(TimeEntriesCompanion data) {
     return TimeEntryRow(
@@ -704,6 +734,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
               ? data.durationMilliseconds.value
               : this.durationMilliseconds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -715,7 +746,8 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('durationMilliseconds: $durationMilliseconds, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
@@ -728,6 +760,7 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
     endedAt,
     durationMilliseconds,
     createdAt,
+    note,
   );
   @override
   bool operator ==(Object other) =>
@@ -738,7 +771,8 @@ class TimeEntryRow extends DataClass implements Insertable<TimeEntryRow> {
           other.startedAt == this.startedAt &&
           other.endedAt == this.endedAt &&
           other.durationMilliseconds == this.durationMilliseconds &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.note == this.note);
 }
 
 class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
@@ -748,6 +782,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
   final Value<DateTime> endedAt;
   final Value<int> durationMilliseconds;
   final Value<DateTime> createdAt;
+  final Value<String?> note;
   final Value<int> rowid;
   const TimeEntriesCompanion({
     this.id = const Value.absent(),
@@ -756,6 +791,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
     this.endedAt = const Value.absent(),
     this.durationMilliseconds = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TimeEntriesCompanion.insert({
@@ -765,6 +801,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
     required DateTime endedAt,
     required int durationMilliseconds,
     required DateTime createdAt,
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        activityId = Value(activityId),
@@ -779,6 +816,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
     Expression<DateTime>? endedAt,
     Expression<int>? durationMilliseconds,
     Expression<DateTime>? createdAt,
+    Expression<String>? note,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -789,6 +827,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
       if (durationMilliseconds != null)
         'duration_milliseconds': durationMilliseconds,
       if (createdAt != null) 'created_at': createdAt,
+      if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -800,6 +839,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
     Value<DateTime>? endedAt,
     Value<int>? durationMilliseconds,
     Value<DateTime>? createdAt,
+    Value<String?>? note,
     Value<int>? rowid,
   }) {
     return TimeEntriesCompanion(
@@ -809,6 +849,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
       endedAt: endedAt ?? this.endedAt,
       durationMilliseconds: durationMilliseconds ?? this.durationMilliseconds,
       createdAt: createdAt ?? this.createdAt,
+      note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -834,6 +875,9 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -849,6 +893,7 @@ class TimeEntriesCompanion extends UpdateCompanion<TimeEntryRow> {
           ..write('endedAt: $endedAt, ')
           ..write('durationMilliseconds: $durationMilliseconds, ')
           ..write('createdAt: $createdAt, ')
+          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1207,6 +1252,7 @@ typedef $$TimeEntriesTableCreateCompanionBuilder =
       required DateTime endedAt,
       required int durationMilliseconds,
       required DateTime createdAt,
+      Value<String?> note,
       Value<int> rowid,
     });
 typedef $$TimeEntriesTableUpdateCompanionBuilder =
@@ -1217,6 +1263,7 @@ typedef $$TimeEntriesTableUpdateCompanionBuilder =
       Value<DateTime> endedAt,
       Value<int> durationMilliseconds,
       Value<DateTime> createdAt,
+      Value<String?> note,
       Value<int> rowid,
     });
 
@@ -1278,6 +1325,11 @@ class $$TimeEntriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ActivitiesTableFilterComposer get activityId {
     final $$ActivitiesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -1336,6 +1388,11 @@ class $$TimeEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ActivitiesTableOrderingComposer get activityId {
     final $$ActivitiesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -1385,6 +1442,9 @@ class $$TimeEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   $$ActivitiesTableAnnotationComposer get activityId {
     final $$ActivitiesTableAnnotationComposer composer = $composerBuilder(
@@ -1445,6 +1505,7 @@ class $$TimeEntriesTableTableManager
                 Value<DateTime> endedAt = const Value.absent(),
                 Value<int> durationMilliseconds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TimeEntriesCompanion(
                 id: id,
@@ -1453,6 +1514,7 @@ class $$TimeEntriesTableTableManager
                 endedAt: endedAt,
                 durationMilliseconds: durationMilliseconds,
                 createdAt: createdAt,
+                note: note,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1463,6 +1525,7 @@ class $$TimeEntriesTableTableManager
                 required DateTime endedAt,
                 required int durationMilliseconds,
                 required DateTime createdAt,
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TimeEntriesCompanion.insert(
                 id: id,
@@ -1471,6 +1534,7 @@ class $$TimeEntriesTableTableManager
                 endedAt: endedAt,
                 durationMilliseconds: durationMilliseconds,
                 createdAt: createdAt,
+                note: note,
                 rowid: rowid,
               ),
           withReferenceMapper:

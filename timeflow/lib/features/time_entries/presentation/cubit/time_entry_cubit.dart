@@ -7,6 +7,10 @@ import '../../domain/repositories/time_entry_repository.dart';
 
 enum ManualEntryResult { success, sessionActive, invalidInput, failure }
 
+enum NoteUpdateResult { success, notFound, failure }
+
+enum EntryDeletionResult { success, notFound, failure }
+
 class TimeEntryState {
   const TimeEntryState({this.isSaving = false, this.entries = const []});
   final bool isSaving;
@@ -31,15 +35,16 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
 
   Future<ManualEntryResult> addManualEntry({
     required String activityId,
-    required DateTime startedAt,
+    required DateTime endedAt,
     required Duration duration,
+    String? note,
   }) async {
     if (state.isSaving) return ManualEntryResult.invalidInput;
     if (_hasSession()) return ManualEntryResult.sessionActive;
     if (activityId.isEmpty || duration <= Duration.zero) {
       return ManualEntryResult.invalidInput;
     }
-    if (startedAt.add(duration).isAfter(DateTime.now())) {
+    if (endedAt.isAfter(DateTime.now())) {
       return ManualEntryResult.invalidInput;
     }
 
@@ -50,10 +55,11 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
         TimeEntry(
           id: 'manual-${createdAt.microsecondsSinceEpoch}-${_idSequence++}',
           activityId: activityId,
-          startedAt: startedAt,
-          endedAt: startedAt.add(duration),
+          startedAt: endedAt.subtract(duration),
+          endedAt: endedAt,
           duration: duration,
           createdAt: createdAt,
+          note: _normalizedNote(note),
         ),
       );
       return ManualEntryResult.success;
@@ -62,6 +68,42 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
     } finally {
       emit(TimeEntryState(entries: state.entries));
     }
+  }
+
+  Future<NoteUpdateResult> updateNote(String entryId, String? note) async {
+    if (state.isSaving) return NoteUpdateResult.failure;
+    emit(TimeEntryState(isSaving: true, entries: state.entries));
+    try {
+      final updated = await _repository.updateNote(
+        entryId,
+        _normalizedNote(note),
+      );
+      return updated ? NoteUpdateResult.success : NoteUpdateResult.notFound;
+    } catch (_) {
+      return NoteUpdateResult.failure;
+    } finally {
+      emit(TimeEntryState(entries: state.entries));
+    }
+  }
+
+  Future<EntryDeletionResult> deleteEntry(String entryId) async {
+    if (state.isSaving) return EntryDeletionResult.failure;
+    emit(TimeEntryState(isSaving: true, entries: state.entries));
+    try {
+      final deleted = await _repository.deleteEntry(entryId);
+      return deleted
+          ? EntryDeletionResult.success
+          : EntryDeletionResult.notFound;
+    } catch (_) {
+      return EntryDeletionResult.failure;
+    } finally {
+      emit(TimeEntryState(entries: state.entries));
+    }
+  }
+
+  String? _normalizedNote(String? note) {
+    final normalized = note?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
   }
 
   @override

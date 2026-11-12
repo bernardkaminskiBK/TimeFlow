@@ -24,8 +24,12 @@ class DriftTimeEntryRepository implements TimeEntryRepository {
   }
 
   SimpleSelectStatement<$TimeEntriesTable, TimeEntryRow> _orderedEntries() =>
-      db.select(db.timeEntries)
-        ..orderBy([(table) => OrderingTerm.desc(table.startedAt)]);
+      db.select(db.timeEntries)..orderBy([
+        (table) => OrderingTerm.desc(table.endedAt),
+        (table) => OrderingTerm.desc(table.startedAt),
+        (table) => OrderingTerm.desc(table.createdAt),
+        (table) => OrderingTerm.desc(table.id),
+      ]);
 
   domain.TimeEntry _toDomain(TimeEntryRow row) => domain.TimeEntry(
     id: row.id,
@@ -34,6 +38,7 @@ class DriftTimeEntryRepository implements TimeEntryRepository {
     endedAt: row.endedAt,
     duration: Duration(milliseconds: row.durationMilliseconds),
     createdAt: row.createdAt,
+    note: row.note,
   );
 
   @override
@@ -56,8 +61,27 @@ class DriftTimeEntryRepository implements TimeEntryRepository {
             endedAt: e.endedAt,
             durationMilliseconds: e.duration.inMilliseconds,
             createdAt: e.createdAt,
+            note: Value(e.note),
           ),
         );
     _changes.add(null);
+  }
+
+  @override
+  Future<bool> updateNote(String entryId, String? note) async {
+    final updated = await (db.update(db.timeEntries)..where(
+      (table) => table.id.equals(entryId),
+    )).write(TimeEntriesCompanion(note: Value(note)));
+    if (updated > 0) _changes.add(null);
+    return updated > 0;
+  }
+
+  @override
+  Future<bool> deleteEntry(String entryId) async {
+    final deleted =
+        await (db.delete(db.timeEntries)
+          ..where((table) => table.id.equals(entryId))).go();
+    if (deleted > 0) _changes.add(null);
+    return deleted > 0;
   }
 }

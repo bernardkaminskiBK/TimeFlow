@@ -6,6 +6,7 @@ class TimeEntry {
     required this.endedAt,
     required this.duration,
     required this.createdAt,
+    this.note,
   });
 
   final String id;
@@ -14,4 +15,15 @@ class TimeEntry {
   final DateTime endedAt;
   final Duration duration;
   final DateTime createdAt;
+  final String? note;
+
+  TimeEntry withNote(String? value) => TimeEntry(
+    id: id,
+    activityId: activityId,
+    startedAt: startedAt,
+    endedAt: endedAt,
+    duration: duration,
+    createdAt: createdAt,
+    note: value,
+  );
 }

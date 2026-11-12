@@ -26,8 +26,7 @@ class WeeklySummaryCard extends StatelessWidget {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final weekEntries = entries.where(
       (entry) =>
-          !entry.startedAt.isBefore(weekStart) &&
-          entry.startedAt.isBefore(weekEnd),
+          !entry.endedAt.isBefore(weekStart) && entry.endedAt.isBefore(weekEnd),
     );
     final total = weekEntries.fold(
       Duration.zero,

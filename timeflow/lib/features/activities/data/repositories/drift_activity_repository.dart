@@ -8,7 +8,8 @@ class DriftActivityRepository implements ActivityRepository {
   final AppDatabase db;
   @override
   Future<List<domain.Activity>> getActivities() async =>
-      (await db.select(db.activities).get())
+      (await (db.select(db.activities)
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get())
           .map(
             (r) => domain.Activity(
               id: r.id,
@@ -16,6 +17,7 @@ class DriftActivityRepository implements ActivityRepository {
               colorValue: r.colorValue,
               iconKey: r.iconKey,
               isArchived: r.isArchived,
+              createdAt: r.createdAt,
             ),
           )
           .toList();
@@ -29,6 +31,7 @@ class DriftActivityRepository implements ActivityRepository {
           colorValue: a.colorValue,
           iconKey: a.iconKey,
           isArchived: Value(a.isArchived),
+          createdAt: Value(a.createdAt),
         ),
       );
   @override

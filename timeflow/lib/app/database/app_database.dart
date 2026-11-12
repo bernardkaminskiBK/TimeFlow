@@ -11,6 +11,7 @@ class Activities extends Table {
   IntColumn get colorValue => integer()();
   TextColumn get iconKey => text()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().nullable()();
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -33,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'timeflow'));
   AppDatabase.inMemory() : super(NativeDatabase.memory());
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
   @override
   MigrationStrategy get migration => MigrationStrategy(
     beforeOpen: (_) async => customStatement('PRAGMA foreign_keys = ON'),
@@ -67,6 +68,11 @@ class AppDatabase extends _$AppDatabase {
           ),
         ]),
       );
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(activities, activities.createdAt);
+      }
     },
   );
 }

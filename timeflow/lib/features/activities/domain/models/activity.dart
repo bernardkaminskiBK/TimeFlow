@@ -5,6 +5,7 @@ class Activity {
     required this.colorValue,
     required this.iconKey,
     this.isArchived = false,
+    this.createdAt,
   });
 
   final String id;
@@ -12,6 +13,7 @@ class Activity {
   final int colorValue;
   final String iconKey;
   final bool isArchived;
+  final DateTime? createdAt;
 
   Activity copyWith({
     String? name,
@@ -25,6 +27,7 @@ class Activity {
       colorValue: colorValue ?? this.colorValue,
       iconKey: iconKey ?? this.iconKey,
       isArchived: isArchived ?? this.isArchived,
+      createdAt: createdAt,
     );
   }
 }

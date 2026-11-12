@@ -36,8 +36,18 @@ class InMemoryActivityRepository implements ActivityRepository {
   final Future<bool> Function(String activityId) _hasTimeEntries;
 
   @override
-  Future<List<Activity>> getActivities() async =>
-      List.unmodifiable(_activities);
+  Future<List<Activity>> getActivities() async {
+    final activities = [..._activities];
+    activities.sort((left, right) {
+      final leftCreatedAt = left.createdAt;
+      final rightCreatedAt = right.createdAt;
+      if (leftCreatedAt == null && rightCreatedAt == null) return 0;
+      if (leftCreatedAt == null) return 1;
+      if (rightCreatedAt == null) return -1;
+      return rightCreatedAt.compareTo(leftCreatedAt);
+    });
+    return List.unmodifiable(activities);
+  }
 
   @override
   Future<void> saveActivity(Activity activity) async {

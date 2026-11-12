@@ -64,6 +64,17 @@ class $ActivitiesTable extends Activities
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -71,6 +82,7 @@ class $ActivitiesTable extends Activities
     colorValue,
     iconKey,
     isArchived,
+    createdAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -119,6 +131,12 @@ class $ActivitiesTable extends Activities
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
     return context;
   }
 
@@ -153,6 +171,10 @@ class $ActivitiesTable extends Activities
             DriftSqlType.bool,
             data['${effectivePrefix}is_archived'],
           )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
     );
   }
 
@@ -168,12 +190,14 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
   final int colorValue;
   final String iconKey;
   final bool isArchived;
+  final DateTime? createdAt;
   const ActivityRow({
     required this.id,
     required this.name,
     required this.colorValue,
     required this.iconKey,
     required this.isArchived,
+    this.createdAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -183,6 +207,9 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
     map['color_value'] = Variable<int>(colorValue);
     map['icon_key'] = Variable<String>(iconKey);
     map['is_archived'] = Variable<bool>(isArchived);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
     return map;
   }
 
@@ -193,6 +220,10 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
       colorValue: Value(colorValue),
       iconKey: Value(iconKey),
       isArchived: Value(isArchived),
+      createdAt:
+          createdAt == null && nullToAbsent
+              ? const Value.absent()
+              : Value(createdAt),
     );
   }
 
@@ -207,6 +238,7 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
       colorValue: serializer.fromJson<int>(json['colorValue']),
       iconKey: serializer.fromJson<String>(json['iconKey']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
     );
   }
   @override
@@ -218,6 +250,7 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
       'colorValue': serializer.toJson<int>(colorValue),
       'iconKey': serializer.toJson<String>(iconKey),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
     };
   }
 
@@ -227,12 +260,14 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
     int? colorValue,
     String? iconKey,
     bool? isArchived,
+    Value<DateTime?> createdAt = const Value.absent(),
   }) => ActivityRow(
     id: id ?? this.id,
     name: name ?? this.name,
     colorValue: colorValue ?? this.colorValue,
     iconKey: iconKey ?? this.iconKey,
     isArchived: isArchived ?? this.isArchived,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
   );
   ActivityRow copyWithCompanion(ActivitiesCompanion data) {
     return ActivityRow(
@@ -243,6 +278,7 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
       iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       isArchived:
           data.isArchived.present ? data.isArchived.value : this.isArchived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
 
@@ -253,13 +289,15 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
           ..write('name: $name, ')
           ..write('colorValue: $colorValue, ')
           ..write('iconKey: $iconKey, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, colorValue, iconKey, isArchived);
+  int get hashCode =>
+      Object.hash(id, name, colorValue, iconKey, isArchived, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -268,7 +306,8 @@ class ActivityRow extends DataClass implements Insertable<ActivityRow> {
           other.name == this.name &&
           other.colorValue == this.colorValue &&
           other.iconKey == this.iconKey &&
-          other.isArchived == this.isArchived);
+          other.isArchived == this.isArchived &&
+          other.createdAt == this.createdAt);
 }
 
 class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
@@ -277,6 +316,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
   final Value<int> colorValue;
   final Value<String> iconKey;
   final Value<bool> isArchived;
+  final Value<DateTime?> createdAt;
   final Value<int> rowid;
   const ActivitiesCompanion({
     this.id = const Value.absent(),
@@ -284,6 +324,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
     this.colorValue = const Value.absent(),
     this.iconKey = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ActivitiesCompanion.insert({
@@ -292,6 +333,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
     required int colorValue,
     required String iconKey,
     this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -303,6 +345,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
     Expression<int>? colorValue,
     Expression<String>? iconKey,
     Expression<bool>? isArchived,
+    Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -311,6 +354,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
       if (colorValue != null) 'color_value': colorValue,
       if (iconKey != null) 'icon_key': iconKey,
       if (isArchived != null) 'is_archived': isArchived,
+      if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -321,6 +365,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
     Value<int>? colorValue,
     Value<String>? iconKey,
     Value<bool>? isArchived,
+    Value<DateTime?>? createdAt,
     Value<int>? rowid,
   }) {
     return ActivitiesCompanion(
@@ -329,6 +374,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
       colorValue: colorValue ?? this.colorValue,
       iconKey: iconKey ?? this.iconKey,
       isArchived: isArchived ?? this.isArchived,
+      createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -351,6 +397,9 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -365,6 +414,7 @@ class ActivitiesCompanion extends UpdateCompanion<ActivityRow> {
           ..write('colorValue: $colorValue, ')
           ..write('iconKey: $iconKey, ')
           ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -824,6 +874,7 @@ typedef $$ActivitiesTableCreateCompanionBuilder =
       required int colorValue,
       required String iconKey,
       Value<bool> isArchived,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 typedef $$ActivitiesTableUpdateCompanionBuilder =
@@ -833,6 +884,7 @@ typedef $$ActivitiesTableUpdateCompanionBuilder =
       Value<int> colorValue,
       Value<String> iconKey,
       Value<bool> isArchived,
+      Value<DateTime?> createdAt,
       Value<int> rowid,
     });
 
@@ -896,6 +948,11 @@ class $$ActivitiesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> timeEntriesRefs(
     Expression<bool> Function($$TimeEntriesTableFilterComposer f) f,
   ) {
@@ -955,6 +1012,11 @@ class $$ActivitiesTableOrderingComposer
     column: $table.isArchived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ActivitiesTableAnnotationComposer
@@ -984,6 +1046,9 @@ class $$ActivitiesTableAnnotationComposer
     column: $table.isArchived,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   Expression<T> timeEntriesRefs<T extends Object>(
     Expression<T> Function($$TimeEntriesTableAnnotationComposer a) f,
@@ -1044,6 +1109,7 @@ class $$ActivitiesTableTableManager
                 Value<int> colorValue = const Value.absent(),
                 Value<String> iconKey = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ActivitiesCompanion(
                 id: id,
@@ -1051,6 +1117,7 @@ class $$ActivitiesTableTableManager
                 colorValue: colorValue,
                 iconKey: iconKey,
                 isArchived: isArchived,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1060,6 +1127,7 @@ class $$ActivitiesTableTableManager
                 required int colorValue,
                 required String iconKey,
                 Value<bool> isArchived = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ActivitiesCompanion.insert(
                 id: id,
@@ -1067,6 +1135,7 @@ class $$ActivitiesTableTableManager
                 colorValue: colorValue,
                 iconKey: iconKey,
                 isArchived: isArchived,
+                createdAt: createdAt,
                 rowid: rowid,
               ),
           withReferenceMapper:

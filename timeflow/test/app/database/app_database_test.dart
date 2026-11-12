@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timeflow/app/database/app_database.dart';
 import 'package:timeflow/features/activities/data/repositories/drift_activity_repository.dart';
+import 'package:timeflow/features/activities/domain/models/activity.dart';
 import 'package:timeflow/features/activities/domain/repositories/activity_repository.dart';
 import 'package:timeflow/features/time_entries/data/repositories/drift_time_entry_repository.dart';
 import 'package:timeflow/features/time_entries/domain/models/time_entry.dart';
@@ -29,5 +30,23 @@ void main() {
       await activities.deleteActivity('activity-programming'),
       ActivityDeletionResult.referenced,
     );
+  });
+
+  test('returns newly created activities first', () async {
+    final database = AppDatabase.inMemory();
+    addTearDown(database.close);
+    final activities = DriftActivityRepository(database);
+    const newestId = 'activity-newest';
+    await activities.saveActivity(
+      Activity(
+        id: newestId,
+        name: 'Newest',
+        colorValue: 0xFF52C7FF,
+        iconKey: 'other',
+        createdAt: DateTime.utc(2026, 11, 12),
+      ),
+    );
+
+    expect((await activities.getActivities()).first.id, newestId);
   });
 }

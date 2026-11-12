@@ -41,6 +41,7 @@ class ActivityCubit extends Cubit<ActivityState> {
       name: name.trim(),
       colorValue: colorValue,
       iconKey: iconKey,
+      createdAt: DateTime.now(),
     );
     await _save(activity);
   }

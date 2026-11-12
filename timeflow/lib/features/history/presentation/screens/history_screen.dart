@@ -1,9 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
+import '../../../time_entries/presentation/widgets/manual_time_entry_sheet.dart';
+import '../../../timer/presentation/cubit/stopwatch_cubit.dart';
 import '../widgets/activity_history_list.dart';
 import '../widgets/history_date_selector.dart';
 import '../widgets/weekly_summary_card.dart';
@@ -48,6 +51,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSession = context.select<StopwatchCubit, bool>(
+      (cubit) => cubit.state.hasSession,
+    );
     return Scaffold(
       extendBody: true,
       body: DecoratedBox(
@@ -117,7 +123,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 duration: const Duration(milliseconds: 210),
                 curve: Curves.easeOut,
                 opacity: _showAddButton ? 1 : 0,
-                child: _AddEntryButton(onPressed: () {}),
+                child: _AddEntryButton(
+                  onPressed:
+                      hasSession
+                          ? null
+                          : () => showManualTimeEntrySheet(context),
+                ),
               ),
             ),
           ),
@@ -150,7 +161,7 @@ class _HistoryHeader extends StatelessWidget {
 class _AddEntryButton extends StatelessWidget {
   const _AddEntryButton({required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

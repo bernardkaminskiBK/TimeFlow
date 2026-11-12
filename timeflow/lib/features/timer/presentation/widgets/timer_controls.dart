@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
 import '../../../activities/presentation/cubit/activity_cubit.dart';
+import '../../../time_entries/presentation/widgets/manual_time_entry_sheet.dart';
 import '../cubit/stopwatch_cubit.dart';
 import '../cubit/stopwatch_state.dart';
 
@@ -48,9 +49,10 @@ class _ReadyControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const _RoundControl(
+        _RoundControl(
           icon: Icons.edit_outlined,
           semanticLabel: 'Add manual time',
+          onTap: () => showManualTimeEntrySheet(context),
         ),
         const SizedBox(width: 18),
         _PrimaryControl(

@@ -56,6 +56,29 @@ void main() {
     expect(find.text('Choose activity'), findsNothing);
   });
 
+  testWidgets('adds a manual entry from the home screen', (tester) async {
+    await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
+
+    final manualEntryButton = find.bySemanticsLabel('Add manual time');
+    await tester.ensureVisible(manualEntryButton);
+    await tester.pump();
+    await tester.tap(manualEntryButton.hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Add manual entry'), findsOneWidget);
+    expect(find.text('Programming'), findsWidgets);
+
+    await tester.ensureVisible(find.text('Save entry'));
+    await tester.tap(find.text('Save entry').hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add manual entry'), findsNothing);
+    expect(
+      find.text('Your manual entry was successfully saved.').hitTestable(),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('keeps a running session across navigation tabs', (tester) async {
     await tester.pumpWidget(const TimeFlowApp());
     await tester.pumpAndSettle();

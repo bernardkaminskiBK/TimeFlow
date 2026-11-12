@@ -11,6 +11,7 @@ import '../features/history/presentation/screens/history_screen.dart';
 import '../features/statistics/presentation/screens/statistics_screen.dart';
 import '../features/time_entries/data/repositories/drift_time_entry_repository.dart';
 import '../features/time_entries/domain/repositories/time_entry_repository.dart';
+import '../features/time_entries/presentation/cubit/time_entry_cubit.dart';
 import '../features/timer/data/repositories/shared_preferences_stopwatch_session_repository.dart';
 import '../features/timer/presentation/cubit/stopwatch_cubit.dart';
 import '../features/timer/presentation/screens/timer_screen.dart';
@@ -33,6 +34,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
   late final ActivityRepository _activityRepository;
   late final ActivityCubit _activityCubit;
   late final TimeEntryRepository _timeEntryRepository;
+  late final TimeEntryCubit _timeEntryCubit;
   late final StopwatchCubit _stopwatchCubit;
   late final AppDatabase _database;
   var _selectedIndex = 0;
@@ -54,6 +56,10 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
               : SharedPreferencesStopwatchSessionRepository(preferences),
     );
     unawaited(_stopwatchCubit.restore());
+    _timeEntryCubit = TimeEntryCubit(
+      _timeEntryRepository,
+      hasSession: () => _stopwatchCubit.hasSession,
+    );
     _activityCubit = ActivityCubit(
       _activityRepository,
       hasSession: () => _stopwatchCubit.hasSession,
@@ -73,6 +79,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _activityCubit.close();
     _stopwatchCubit.close();
+    _timeEntryCubit.close();
     _database.close();
     super.dispose();
   }
@@ -93,6 +100,7 @@ class _TimeFlowAppState extends State<TimeFlowApp> with WidgetsBindingObserver {
         providers: [
           BlocProvider.value(value: _activityCubit),
           BlocProvider.value(value: _stopwatchCubit),
+          BlocProvider.value(value: _timeEntryCubit),
         ],
         child: MaterialApp(
           title: 'TimeFlow',

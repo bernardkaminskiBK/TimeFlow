@@ -243,19 +243,28 @@ class _ManageActivitiesScreenState extends State<ManageActivitiesScreen> {
               : Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF58C8FF), Color(0xFF2865EC)],
+                  ),
+                  border: Border.all(color: const Color(0xFF5A91FA)),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.32),
-                      blurRadius: 22,
-                      offset: const Offset(0, 9),
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
                 child: FloatingActionButton.extended(
                   onPressed: _openEditor,
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
                   elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   icon: const Icon(Icons.add_rounded),
                   label: const Text(
                     'Add Activity',

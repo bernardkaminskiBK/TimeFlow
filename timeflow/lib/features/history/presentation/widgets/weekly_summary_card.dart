@@ -92,9 +92,12 @@ class WeeklySummaryCard extends StatelessWidget {
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
-    if (hours == 0) return '${minutes}m';
-    if (minutes == 0) return '${hours}h';
-    return '${hours}h ${minutes}m';
+    final seconds = duration.inSeconds.remainder(60);
+    final parts = <String>[];
+    if (hours > 0) parts.add('${hours}h');
+    if (minutes > 0) parts.add('${minutes}m');
+    if (seconds > 0) parts.add('${seconds}s');
+    return parts.isEmpty ? '0m' : parts.join(' ');
   }
 }
 

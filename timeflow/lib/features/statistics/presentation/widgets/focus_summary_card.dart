@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../domain/statistics_snapshot.dart';
 
 class FocusSummaryCard extends StatelessWidget {
-  const FocusSummaryCard({super.key});
+  const FocusSummaryCard({required this.snapshot, super.key});
+
+  final StatisticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
@@ -58,30 +61,53 @@ class FocusSummaryCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                Text('18h 45m', style: Theme.of(context).textTheme.titleLarge),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatStatisticsDuration(snapshot.total),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFF49D49D).withValues(alpha: 0.11),
+              color: (snapshot.isImproved
+                      ? const Color(0xFF49D49D)
+                      : const Color(0xFFFF7A90))
+                  .withValues(alpha: 0.11),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0x3849D49D)),
+              border: Border.all(
+                color:
+                    snapshot.isImproved
+                        ? const Color(0x3849D49D)
+                        : const Color(0x38FF7A90),
+              ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.arrow_upward_rounded,
+                  snapshot.isImproved
+                      ? Icons.arrow_upward_rounded
+                      : Icons.arrow_downward_rounded,
                   size: 13,
-                  color: Color(0xFF62DEAC),
+                  color:
+                      snapshot.isImproved
+                          ? const Color(0xFF62DEAC)
+                          : const Color(0xFFFF7A90),
                 ),
-                SizedBox(width: 3),
+                const SizedBox(width: 3),
                 Text(
-                  '12% vs last week',
+                  snapshot.comparisonLabel,
                   style: TextStyle(
-                    color: Color(0xFF62DEAC),
+                    color:
+                        snapshot.isImproved
+                            ? const Color(0xFF62DEAC)
+                            : const Color(0xFFFF7A90),
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../domain/statistics_snapshot.dart';
 
 class ActivityTrendCard extends StatelessWidget {
-  const ActivityTrendCard({super.key});
+  const ActivityTrendCard({required this.snapshot, super.key});
 
-  static const _values = [0.62, 0.86, 0.48, 1.0, 0.72, 0.39, 0.58];
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final StatisticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
+    final peak = snapshot.trend.fold(
+      Duration.zero,
+      (current, point) => point.duration > current ? point.duration : current,
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
@@ -51,12 +55,18 @@ class ActivityTrendCard extends StatelessWidget {
             height: 165,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(_days.length, (index) {
+              children: List.generate(snapshot.trend.length, (index) {
+                final point = snapshot.trend[index];
                 return Expanded(
                   child: _TrendBar(
-                    day: _days[index],
-                    value: _values[index],
-                    isPeak: index == 3,
+                    label: point.label,
+                    duration: point.duration,
+                    value:
+                        peak == Duration.zero
+                            ? 0
+                            : point.duration.inMicroseconds /
+                                peak.inMicroseconds,
+                    isCurrent: point.isCurrent,
                   ),
                 );
               }),
@@ -70,35 +80,48 @@ class ActivityTrendCard extends StatelessWidget {
 
 class _TrendBar extends StatelessWidget {
   const _TrendBar({
-    required this.day,
+    required this.label,
+    required this.duration,
     required this.value,
-    required this.isPeak,
+    required this.isCurrent,
   });
 
-  final String day;
+  final String label;
+  final Duration duration;
   final double value;
-  final bool isPeak;
+  final bool isCurrent;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        if (isPeak)
-          const Text(
-            '4h',
-            style: TextStyle(
-              color: AppColors.cyan,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-            ),
-          )
-        else
-          const SizedBox(height: 11),
+        SizedBox(
+          height: 11,
+          child:
+              duration > Duration.zero || isCurrent
+                  ? FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      _formatDuration(duration),
+                      maxLines: 1,
+                      style: TextStyle(
+                        color:
+                            isCurrent
+                                ? AppColors.cyan
+                                : const Color(0xFF397FEA),
+                        fontSize: 9,
+                        fontWeight:
+                            isCurrent ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  )
+                  : null,
+        ),
         const SizedBox(height: 6),
         Flexible(
           child: FractionallySizedBox(
-            heightFactor: value,
+            heightFactor: value == 0 ? 0.025 : value,
             alignment: Alignment.bottomCenter,
             child: Container(
               width: 18,
@@ -107,13 +130,13 @@ class _TrendBar extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors:
-                      isPeak
+                      isCurrent
                           ? const [Color(0xFF62D1FF), Color(0xFF3478F6)]
                           : const [Color(0xFF397FEA), Color(0xFF173C82)],
                 ),
                 borderRadius: BorderRadius.circular(9),
                 boxShadow:
-                    isPeak
+                    isCurrent
                         ? [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.28),
@@ -127,14 +150,26 @@ class _TrendBar extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          day,
+          label,
           style: TextStyle(
-            color: isPeak ? AppColors.textPrimary : AppColors.textSecondary,
+            color: isCurrent ? AppColors.textPrimary : AppColors.textSecondary,
             fontSize: 10,
-            fontWeight: isPeak ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ],
     );
+  }
+
+  String _formatDuration(Duration value) {
+    if (value == Duration.zero) return '0m';
+    if (value.inHours > 0) {
+      final minutes = value.inMinutes.remainder(60);
+      return minutes == 0
+          ? '${value.inHours}h'
+          : '${value.inHours}h ${minutes}m';
+    }
+    if (value.inMinutes > 0) return '${value.inMinutes}m';
+    return '${value.inSeconds}s';
   }
 }

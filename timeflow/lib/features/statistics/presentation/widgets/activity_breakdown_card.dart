@@ -3,14 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
-
-const _programmingColor = AppColors.cyan;
-const _englishColor = Color(0xFF8B7CFF);
-const _workoutColor = Color(0xFFFF7A90);
-const _readingColor = Color(0xFFFFB85C);
+import '../../domain/statistics_snapshot.dart';
 
 class ActivityBreakdownCard extends StatelessWidget {
-  const ActivityBreakdownCard({super.key});
+  const ActivityBreakdownCard({required this.snapshot, super.key});
+
+  final StatisticsSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +36,8 @@ class ActivityBreakdownCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const Spacer(),
-              const Text(
-                'THIS WEEK',
+              Text(
+                snapshot.periodLabel,
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 9,
@@ -58,22 +56,25 @@ class ActivityBreakdownCard extends StatelessWidget {
                 children: [
                   CustomPaint(
                     size: const Size.square(190),
-                    painter: _DonutChartPainter(),
+                    painter: _DonutChartPainter(snapshot.activities),
                   ),
-                  const Column(
+                  Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '18h 45m',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.4,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatStatisticsDuration(snapshot.total),
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 23,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.4,
+                          ),
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'TOTAL TIME',
                         style: TextStyle(
                           color: AppColors.textSecondary,
@@ -89,33 +90,30 @@ class ActivityBreakdownCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          const _LegendItem(
-            color: _programmingColor,
-            activity: 'Programming',
-            duration: '9h 30m',
-            percentage: '51%',
-          ),
-          const SizedBox(height: 12),
-          const _LegendItem(
-            color: _englishColor,
-            activity: 'English',
-            duration: '5h 15m',
-            percentage: '28%',
-          ),
-          const SizedBox(height: 12),
-          const _LegendItem(
-            color: _workoutColor,
-            activity: 'Workout',
-            duration: '2h 30m',
-            percentage: '13%',
-          ),
-          const SizedBox(height: 12),
-          const _LegendItem(
-            color: _readingColor,
-            activity: 'Reading',
-            duration: '1h 30m',
-            percentage: '8%',
-          ),
+          if (snapshot.activities.isEmpty)
+            const Text(
+              'No tracked activities in this period.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            )
+          else
+            for (
+              var index = 0;
+              index < snapshot.activities.length;
+              index++
+            ) ...[
+              if (index > 0) const SizedBox(height: 12),
+              _LegendItem(
+                color: Color(snapshot.activities[index].activity.colorValue),
+                activity: snapshot.activities[index].activity.name,
+                duration: formatStatisticsDuration(
+                  snapshot.activities[index].total,
+                ),
+                percentage:
+                    snapshot.total == Duration.zero
+                        ? '0%'
+                        : '${(snapshot.activities[index].total.inMicroseconds * 100 / snapshot.total.inMicroseconds).round()}%',
+              ),
+            ],
         ],
       ),
     );
@@ -187,12 +185,9 @@ class _LegendItem extends StatelessWidget {
 }
 
 class _DonutChartPainter extends CustomPainter {
-  static const _segments = [
-    (0.51, _programmingColor),
-    (0.28, _englishColor),
-    (0.13, _workoutColor),
-    (0.08, _readingColor),
-  ];
+  const _DonutChartPainter(this.activities);
+
+  final List<ActivityStatistic> activities;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -210,11 +205,18 @@ class _DonutChartPainter extends CustomPainter {
         ..strokeWidth = strokeWidth,
     );
 
+    final total = activities.fold(
+      Duration.zero,
+      (sum, activity) => sum + activity.total,
+    );
+    if (total == Duration.zero) return;
+
     var startAngle = -math.pi / 2;
-    const gap = 0.045;
-    for (final segment in _segments) {
-      final sweep = math.pi * 2 * segment.$1;
-      final color = segment.$2;
+    for (final activity in activities) {
+      final fraction = activity.total.inMicroseconds / total.inMicroseconds;
+      final sweep = math.pi * 2 * fraction;
+      final gap = math.min(0.045, sweep * 0.35);
+      final color = Color(activity.activity.colorValue);
       canvas.drawArc(
         rect,
         startAngle + gap / 2,
@@ -256,5 +258,6 @@ class _DonutChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) =>
+      oldDelegate.activities != activities;
 }

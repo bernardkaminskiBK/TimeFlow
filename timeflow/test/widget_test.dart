@@ -30,6 +30,10 @@ void main() {
       find.text('See where your time goes.').hitTestable(),
       findsOneWidget,
     );
+    expect(find.text('Daily averages'), findsOneWidget);
+    await tester.tap(find.text('Month').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('THIS MONTH'), findsWidgets);
 
     await tester.tap(find.text('History').hitTestable());
     await tester.pumpAndSettle();

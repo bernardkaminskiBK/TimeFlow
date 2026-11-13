@@ -97,6 +97,12 @@ void main() {
     await tester.tap(find.text('Programming').hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('A productive session.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit session').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Edit session'), findsOneWidget);
+    expect(find.text('Save changes'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 

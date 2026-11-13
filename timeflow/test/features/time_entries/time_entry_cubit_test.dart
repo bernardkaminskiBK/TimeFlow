@@ -95,6 +95,75 @@ void main() {
       expect((await repository.getEntries()).single.note, isNull);
     });
 
+    test(
+      'updates session details while preserving identity and note',
+      () async {
+        final repository = InMemoryTimeEntryRepository();
+        final cubit = TimeEntryCubit(repository, hasSession: () => false);
+        addTearDown(cubit.close);
+        await cubit.addManualEntry(
+          activityId: 'activity-programming',
+          endedAt: DateTime(2026, 11, 12, 9, 30),
+          duration: const Duration(minutes: 30),
+          note: 'Keep this note',
+        );
+        final original = (await repository.getEntries()).single;
+        final newEnd = DateTime(2026, 11, 12, 11, 15, 20);
+
+        final result = await cubit.updateEntry(
+          entry: original,
+          activityId: 'activity-english',
+          endedAt: newEnd,
+          duration: const Duration(hours: 1, minutes: 5, seconds: 20),
+        );
+
+        final updated = (await repository.getEntries()).single;
+        expect(result, EntryUpdateResult.success);
+        expect(updated.id, original.id);
+        expect(updated.createdAt, original.createdAt);
+        expect(updated.note, 'Keep this note');
+        expect(updated.activityId, 'activity-english');
+        expect(updated.endedAt, newEnd);
+        expect(updated.startedAt, DateTime(2026, 11, 12, 10, 10));
+        expect(
+          updated.duration,
+          const Duration(hours: 1, minutes: 5, seconds: 20),
+        );
+      },
+    );
+
+    test('rejects invalid edits and reports a missing session', () async {
+      final repository = InMemoryTimeEntryRepository();
+      final cubit = TimeEntryCubit(repository, hasSession: () => false);
+      addTearDown(cubit.close);
+      await cubit.addManualEntry(
+        activityId: 'activity-programming',
+        endedAt: DateTime(2026, 11, 12, 9, 30),
+        duration: const Duration(minutes: 30),
+      );
+      final entry = (await repository.getEntries()).single;
+
+      expect(
+        await cubit.updateEntry(
+          entry: entry,
+          activityId: entry.activityId,
+          endedAt: entry.endedAt,
+          duration: Duration.zero,
+        ),
+        EntryUpdateResult.invalidInput,
+      );
+      await repository.deleteEntry(entry.id);
+      expect(
+        await cubit.updateEntry(
+          entry: entry,
+          activityId: entry.activityId,
+          endedAt: entry.endedAt,
+          duration: entry.duration,
+        ),
+        EntryUpdateResult.notFound,
+      );
+    });
+
     test('deletes a session and reports a missing entry', () async {
       final repository = InMemoryTimeEntryRepository();
       final cubit = TimeEntryCubit(repository, hasSession: () => false);

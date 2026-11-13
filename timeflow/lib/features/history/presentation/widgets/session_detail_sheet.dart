@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../activities/domain/models/activity.dart';
 import '../../../activities/presentation/activity_visuals.dart';
+import '../../../activities/presentation/cubit/activity_cubit.dart';
 import '../../../time_entries/domain/models/time_entry.dart';
 import '../../../time_entries/presentation/cubit/time_entry_cubit.dart';
+import 'edit_session_sheet.dart';
 
 Future<void> showSessionDetailSheet(
   BuildContext context, {
@@ -31,12 +33,16 @@ class _SessionDetailSheet extends StatefulWidget {
 
 class _SessionDetailSheetState extends State<_SessionDetailSheet> {
   late final TextEditingController _noteController;
+  late TimeEntry _entry;
+  Activity? _activity;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _noteController = TextEditingController(text: widget.entry.note);
+    _entry = widget.entry;
+    _activity = widget.activity;
+    _noteController = TextEditingController(text: _entry.note);
   }
 
   @override
@@ -48,7 +54,7 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
   Future<void> _saveNote() async {
     setState(() => _error = null);
     final result = await context.read<TimeEntryCubit>().updateNote(
-      widget.entry.id,
+      _entry.id,
       _noteController.text,
     );
     if (!mounted) return;
@@ -60,6 +66,24 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
       case NoteUpdateResult.failure:
         setState(() => _error = 'Could not save the note. Please try again.');
     }
+  }
+
+  Future<void> _editSession() async {
+    final updated = await showEditSessionDialog(context, entry: _entry);
+    if (updated == null || !mounted) return;
+    final activities = context.read<ActivityCubit>().state.activities;
+    Activity? updatedActivity;
+    for (final activity in activities) {
+      if (activity.id == updated.activityId) {
+        updatedActivity = activity;
+        break;
+      }
+    }
+    setState(() {
+      _entry = updated;
+      _activity = updatedActivity;
+      _error = null;
+    });
   }
 
   Future<void> _deleteSession() async {
@@ -100,9 +124,7 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
     );
     if (confirmed != true || !mounted) return;
 
-    final result = await context.read<TimeEntryCubit>().deleteEntry(
-      widget.entry.id,
-    );
+    final result = await context.read<TimeEntryCubit>().deleteEntry(_entry.id);
     if (!mounted) return;
     switch (result) {
       case EntryDeletionResult.success:
@@ -116,7 +138,7 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = Color(widget.activity?.colorValue ?? 0xFF3478F6);
+    final accent = Color(_activity?.colorValue ?? 0xFF3478F6);
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardInset),
@@ -156,9 +178,7 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
                         ),
                       ),
                       child: Icon(
-                        ActivityVisuals.iconFor(
-                          widget.activity?.iconKey ?? 'other',
-                        ),
+                        ActivityVisuals.iconFor(_activity?.iconKey ?? 'other'),
                         color: accent,
                       ),
                     ),
@@ -168,16 +188,26 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.activity?.name ?? 'Unknown activity',
+                            _activity?.name ?? 'Unknown activity',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            _formatDate(widget.entry.startedAt),
+                            _formatDate(_entry.startedAt),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      tooltip: 'Edit session',
+                      onPressed: _editSession,
+                      style: IconButton.styleFrom(
+                        foregroundColor: AppColors.cyan,
+                        backgroundColor: AppColors.elevatedSurface,
+                        side: const BorderSide(color: AppColors.stroke),
+                      ),
+                      icon: const Icon(Icons.edit_rounded, size: 19),
                     ),
                   ],
                 ),
@@ -188,8 +218,8 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
                       child: _DetailTile(
                         label: 'TIME',
                         value:
-                            '${_time(widget.entry.startedAt)} – '
-                            '${_time(widget.entry.endedAt)}',
+                            '${_time(_entry.startedAt)} – '
+                            '${_time(_entry.endedAt)}',
                         icon: Icons.schedule_rounded,
                       ),
                     ),
@@ -197,7 +227,7 @@ class _SessionDetailSheetState extends State<_SessionDetailSheet> {
                     Expanded(
                       child: _DetailTile(
                         label: 'DURATION',
-                        value: _duration(widget.entry.duration),
+                        value: _duration(_entry.duration),
                         icon: Icons.timelapse_rounded,
                       ),
                     ),

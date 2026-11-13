@@ -17,13 +17,20 @@ class TimeEntry {
   final DateTime createdAt;
   final String? note;
 
-  TimeEntry withNote(String? value) => TimeEntry(
+  TimeEntry copyWith({
+    String? activityId,
+    DateTime? startedAt,
+    DateTime? endedAt,
+    Duration? duration,
+    String? note,
+    bool clearNote = false,
+  }) => TimeEntry(
     id: id,
-    activityId: activityId,
-    startedAt: startedAt,
-    endedAt: endedAt,
-    duration: duration,
+    activityId: activityId ?? this.activityId,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt ?? this.endedAt,
+    duration: duration ?? this.duration,
     createdAt: createdAt,
-    note: value,
+    note: clearNote ? null : note ?? this.note,
   );
 }

@@ -28,8 +28,25 @@ void main() {
     expect(await entries.getEntries(), hasLength(1));
     expect(await entries.updateNote('session-test', 'Persisted note'), isTrue);
     expect((await entries.getEntries()).single.note, 'Persisted note');
+    final original = (await entries.getEntries()).single;
+    final updatedEnd = DateTime(2026, 11, 12, 10, 45, 12);
     expect(
-      await activities.deleteActivity('activity-programming'),
+      await entries.updateEntry(
+        original.copyWith(
+          activityId: 'activity-english',
+          startedAt: DateTime(2026, 11, 12, 9, 30),
+          endedAt: updatedEnd,
+          duration: const Duration(hours: 1, minutes: 15, seconds: 12),
+        ),
+      ),
+      isTrue,
+    );
+    final edited = (await entries.getEntries()).single;
+    expect(edited.activityId, 'activity-english');
+    expect(edited.endedAt, updatedEnd);
+    expect(edited.note, 'Persisted note');
+    expect(
+      await activities.deleteActivity('activity-english'),
       ActivityDeletionResult.referenced,
     );
   });

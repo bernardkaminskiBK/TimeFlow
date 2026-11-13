@@ -9,6 +9,8 @@ enum ManualEntryResult { success, sessionActive, invalidInput, failure }
 
 enum NoteUpdateResult { success, notFound, failure }
 
+enum EntryUpdateResult { success, notFound, invalidInput, failure }
+
 enum EntryDeletionResult { success, notFound, failure }
 
 class TimeEntryState {
@@ -81,6 +83,37 @@ class TimeEntryCubit extends Cubit<TimeEntryState> {
       return updated ? NoteUpdateResult.success : NoteUpdateResult.notFound;
     } catch (_) {
       return NoteUpdateResult.failure;
+    } finally {
+      emit(TimeEntryState(entries: state.entries));
+    }
+  }
+
+  Future<EntryUpdateResult> updateEntry({
+    required TimeEntry entry,
+    required String activityId,
+    required DateTime endedAt,
+    required Duration duration,
+  }) async {
+    if (state.isSaving || activityId.isEmpty || duration <= Duration.zero) {
+      return EntryUpdateResult.invalidInput;
+    }
+    if (endedAt.isAfter(DateTime.now())) {
+      return EntryUpdateResult.invalidInput;
+    }
+
+    emit(TimeEntryState(isSaving: true, entries: state.entries));
+    try {
+      final updated = await _repository.updateEntry(
+        entry.copyWith(
+          activityId: activityId,
+          startedAt: endedAt.subtract(duration),
+          endedAt: endedAt,
+          duration: duration,
+        ),
+      );
+      return updated ? EntryUpdateResult.success : EntryUpdateResult.notFound;
+    } catch (_) {
+      return EntryUpdateResult.failure;
     } finally {
       emit(TimeEntryState(entries: state.entries));
     }

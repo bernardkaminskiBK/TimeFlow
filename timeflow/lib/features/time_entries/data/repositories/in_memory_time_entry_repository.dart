@@ -42,10 +42,22 @@ class InMemoryTimeEntryRepository implements TimeEntryRepository {
   }
 
   @override
+  Future<bool> updateEntry(TimeEntry entry) async {
+    final index = _entries.indexWhere((existing) => existing.id == entry.id);
+    if (index == -1) return false;
+    _entries[index] = entry;
+    _changes.add(null);
+    return true;
+  }
+
+  @override
   Future<bool> updateNote(String entryId, String? note) async {
     final index = _entries.indexWhere((entry) => entry.id == entryId);
     if (index == -1) return false;
-    _entries[index] = _entries[index].withNote(note);
+    _entries[index] = _entries[index].copyWith(
+      note: note,
+      clearNote: note == null,
+    );
     _changes.add(null);
     return true;
   }

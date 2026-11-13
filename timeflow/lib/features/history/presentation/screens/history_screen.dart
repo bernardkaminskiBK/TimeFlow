@@ -56,89 +56,122 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 mediaQuery.viewPadding.bottom,
                 mediaQuery.systemGestureInsets.bottom,
               );
-              return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  side,
-                  20,
-                  side,
-                  systemBottomInset + TimeFlowNavigation.clearanceHeight,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const _HistoryHeader(),
-                        const SizedBox(height: 26),
-                        BlocBuilder<TimeEntryCubit, TimeEntryState>(
-                          buildWhen:
-                              (previous, current) =>
-                                  previous.entries != current.entries,
-                          builder:
-                              (context, state) => WeeklySummaryCard(
-                                entries: state.entries,
-                                selectedDate: _selectedDate ?? DateTime.now(),
+              return CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(side, 20, side, 14),
+                    sliver: SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _HistoryHeader(),
+                              const SizedBox(height: 26),
+                              BlocBuilder<TimeEntryCubit, TimeEntryState>(
+                                buildWhen:
+                                    (previous, current) =>
+                                        previous.entries != current.entries,
+                                builder:
+                                    (context, state) => WeeklySummaryCard(
+                                      entries: state.entries,
+                                      selectedDate:
+                                          _selectedDate ?? DateTime.now(),
+                                    ),
                               ),
-                        ),
-                        const SizedBox(height: 26),
-                        HistoryDateSelector(
-                          selectedDate: _selectedDate,
-                          onDateSelected:
-                              (date) => setState(() => _selectedDate = date),
-                          onCalendarPressed: _chooseDate,
-                        ),
-                        const SizedBox(height: 28),
-                        if (_selectedDate != null) ...[
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: _TimelineChip(
-                              onTap: () => setState(() => _selectedDate = null),
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                        ],
-                        BlocBuilder<TimeEntryCubit, TimeEntryState>(
-                          builder: (context, timeEntryState) {
-                            final selectedDate = _selectedDate;
-                            final visibleEntries =
-                                selectedDate == null
-                                    ? timeEntryState.entries
-                                    : timeEntryState.entries
-                                        .where(
-                                          (entry) =>
-                                              !entry.endedAt.isBefore(
-                                                selectedDate,
-                                              ) &&
-                                              entry.endedAt.isBefore(
-                                                selectedDate.add(
-                                                  const Duration(days: 1),
-                                                ),
-                                              ),
-                                        )
-                                        .toList(growable: false);
-                            return BlocBuilder<ActivityCubit, ActivityState>(
-                              builder:
-                                  (context, activityState) =>
-                                      ActivityHistoryList(
-                                        entries: visibleEntries,
-                                        activities: activityState.activities,
-                                        isDayFocus: selectedDate != null,
-                                        onEntryTap:
-                                            (entry, activity) =>
-                                                showSessionDetailSheet(
-                                                  context,
-                                                  entry: entry,
-                                                  activity: activity,
-                                                ),
-                                      ),
-                            );
-                          },
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _DateHeaderDelegate(
+                      side: side,
+                      child: HistoryDateSelector(
+                        selectedDate: _selectedDate,
+                        onDateSelected:
+                            (date) => setState(() => _selectedDate = date),
+                        onCalendarPressed: _chooseDate,
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      20,
+                      side,
+                      systemBottomInset + TimeFlowNavigation.clearanceHeight,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_selectedDate != null) ...[
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: _TimelineChip(
+                                    onTap:
+                                        () => setState(
+                                          () => _selectedDate = null,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              BlocBuilder<TimeEntryCubit, TimeEntryState>(
+                                builder: (context, timeEntryState) {
+                                  final selectedDate = _selectedDate;
+                                  final visibleEntries =
+                                      selectedDate == null
+                                          ? timeEntryState.entries
+                                          : timeEntryState.entries
+                                              .where(
+                                                (entry) =>
+                                                    !entry.endedAt.isBefore(
+                                                      selectedDate,
+                                                    ) &&
+                                                    entry.endedAt.isBefore(
+                                                      selectedDate.add(
+                                                        const Duration(days: 1),
+                                                      ),
+                                                    ),
+                                              )
+                                              .toList(growable: false);
+                                  return BlocBuilder<
+                                    ActivityCubit,
+                                    ActivityState
+                                  >(
+                                    builder:
+                                        (context, activityState) =>
+                                            ActivityHistoryList(
+                                              entries: visibleEntries,
+                                              activities:
+                                                  activityState.activities,
+                                              isDayFocus: selectedDate != null,
+                                              onEntryTap:
+                                                  (entry, activity) =>
+                                                      showSessionDetailSheet(
+                                                        context,
+                                                        entry: entry,
+                                                        activity: activity,
+                                                      ),
+                                            ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -146,6 +179,64 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
+}
+
+class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _DateHeaderDelegate({required this.side, required this.child});
+
+  final double side;
+  final Widget child;
+
+  @override
+  double get minExtent => 146;
+
+  @override
+  double get maxExtent => 146;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(side, 8, side, 12),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            decoration: BoxDecoration(
+              color:
+                  overlapsContent ? AppColors.background : Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+              border:
+                  overlapsContent
+                      ? Border.all(
+                        color: AppColors.stroke.withValues(alpha: 0.42),
+                      )
+                      : null,
+              boxShadow:
+                  overlapsContent
+                      ? const [
+                        BoxShadow(
+                          color: Color(0x9C060B16),
+                          blurRadius: 24,
+                          offset: Offset(0, 11),
+                        ),
+                      ]
+                      : null,
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DateHeaderDelegate oldDelegate) =>
+      oldDelegate.side != side || oldDelegate.child != child;
 }
 
 class _TimelineChip extends StatelessWidget {

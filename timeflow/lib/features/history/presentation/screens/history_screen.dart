@@ -83,7 +83,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         const SizedBox(height: 26),
                         HistoryDateSelector(
-                          key: ValueKey(_selectedDate == null),
                           selectedDate: _selectedDate,
                           onDateSelected:
                               (date) => setState(() => _selectedDate = date),

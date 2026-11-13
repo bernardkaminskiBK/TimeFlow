@@ -46,24 +46,27 @@ class _HistoryDateSelectorState extends State<HistoryDateSelector> {
     if (selectedDate != null && !_isVisible(selectedDate)) {
       _rangeEnd = _dateOnly(selectedDate);
     }
-    _scrollToLatestDay();
   }
 
   @override
   void didUpdateWidget(covariant HistoryDateSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
     final selectedDate = widget.selectedDate;
-    if (selectedDate != null && !_isVisible(selectedDate)) {
+    final returnedToTimeline =
+        oldWidget.selectedDate != null && selectedDate == null;
+    if (returnedToTimeline) {
+      _rangeEnd = _dateOnly(DateTime.now());
+      _resetScrollPosition();
+    } else if (selectedDate != null && !_isVisible(selectedDate)) {
       _rangeEnd = _dateOnly(selectedDate);
-      _scrollToLatestDay();
+      _resetScrollPosition();
     }
   }
 
-  void _scrollToLatestDay() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    });
+  void _resetScrollPosition() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
   }
 
   @override
@@ -85,7 +88,7 @@ class _HistoryDateSelectorState extends State<HistoryDateSelector> {
   Widget build(BuildContext context) {
     final days = List.generate(
       7,
-      (index) => _rangeEnd.subtract(Duration(days: 6 - index)),
+      (index) => _rangeEnd.subtract(Duration(days: index)),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,6 +124,7 @@ class _HistoryDateSelectorState extends State<HistoryDateSelector> {
           child: ListView.separated(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
+            reverse: true,
             itemCount: days.length,
             separatorBuilder: (_, _) => const SizedBox(width: 9),
             itemBuilder: (context, index) {

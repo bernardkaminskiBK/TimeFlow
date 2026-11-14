@@ -71,14 +71,17 @@ class WeeklySummaryCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
+            flex: 6,
             child: _SummaryValue(
               label: 'SELECTED WEEK',
               value: _formatDuration(total),
             ),
           ),
+          const SizedBox(width: 12),
           Container(width: 1, height: 42, color: AppColors.stroke),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           Expanded(
+            flex: 5,
             child: _SummaryValue(
               label: 'COMPLETED',
               value: '$count ${count == 1 ? 'session' : 'sessions'}',

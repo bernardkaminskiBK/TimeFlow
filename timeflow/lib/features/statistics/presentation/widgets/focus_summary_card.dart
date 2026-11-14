@@ -72,47 +72,54 @@ class FocusSummaryCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: (snapshot.isImproved
-                      ? const Color(0xFF49D49D)
-                      : const Color(0xFFFF7A90))
-                  .withValues(alpha: 0.11),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color:
-                    snapshot.isImproved
-                        ? const Color(0x3849D49D)
-                        : const Color(0x38FF7A90),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  snapshot.isImproved
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 13,
+          const SizedBox(width: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 132),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: (snapshot.isImproved
+                        ? const Color(0xFF49D49D)
+                        : const Color(0xFFFF7A90))
+                    .withValues(alpha: 0.11),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
                   color:
                       snapshot.isImproved
-                          ? const Color(0xFF62DEAC)
-                          : const Color(0xFFFF7A90),
+                          ? const Color(0x3849D49D)
+                          : const Color(0x38FF7A90),
                 ),
-                const SizedBox(width: 3),
-                Text(
-                  snapshot.comparisonLabel,
-                  style: TextStyle(
-                    color:
-                        snapshot.isImproved
-                            ? const Color(0xFF62DEAC)
-                            : const Color(0xFFFF7A90),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      snapshot.isImproved
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
+                      size: 13,
+                      color:
+                          snapshot.isImproved
+                              ? const Color(0xFF62DEAC)
+                              : const Color(0xFFFF7A90),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      snapshot.comparisonLabel,
+                      style: TextStyle(
+                        color:
+                            snapshot.isImproved
+                                ? const Color(0xFF62DEAC)
+                                : const Color(0xFFFF7A90),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

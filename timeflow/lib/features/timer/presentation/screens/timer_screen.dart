@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../app/widgets/timeflow_navigation.dart';
 import '../../../activities/presentation/screens/manage_activities_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../widgets/current_activity_selector.dart';
 import '../widgets/daily_summary_card.dart';
 import '../widgets/stopwatch_dial.dart';
@@ -64,6 +65,12 @@ class TimerScreen extends StatelessWidget {
                                 MaterialPageRoute<void>(
                                   builder:
                                       (_) => const ManageActivitiesScreen(),
+                                ),
+                              ),
+                          onOpenSettings:
+                              () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const SettingsScreen(),
                                 ),
                               ),
                         ),

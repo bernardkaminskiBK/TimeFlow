@@ -61,6 +61,28 @@ void main() {
     expect(find.text('Choose activity'), findsNothing);
   });
 
+  testWidgets('opens settings from the home menu', (tester) async {
+    await tester.pumpWidget(const TimeFlowApp());
+    await tester.pumpAndSettle();
+
+    final moreOptions = find.bySemanticsLabel('More options');
+    await tester.ensureVisible(moreOptions);
+    await tester.pump();
+    await tester.tap(moreOptions.hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings').hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Make TimeFlow yours.'), findsOneWidget);
+    expect(find.text('Local profile'), findsOneWidget);
+    expect(find.text('Import data'), findsOneWidget);
+    expect(find.text('DANGER ZONE'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('Make today count.'), findsOneWidget);
+  });
+
   testWidgets('adds a manual entry from the home screen', (tester) async {
     await tester.pumpWidget(const TimeFlowApp());
     await tester.pumpAndSettle();

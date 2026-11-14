@@ -9,9 +9,14 @@ import '../cubit/stopwatch_cubit.dart';
 import '../cubit/stopwatch_state.dart';
 
 class TimerControls extends StatelessWidget {
-  const TimerControls({required this.onManageActivities, super.key});
+  const TimerControls({
+    required this.onManageActivities,
+    required this.onOpenSettings,
+    super.key,
+  });
 
   final VoidCallback onManageActivities;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +29,13 @@ class TimerControls extends StatelessWidget {
                   ? _ReadyControls(
                     key: const ValueKey('ready-controls'),
                     onManageActivities: onManageActivities,
+                    onOpenSettings: onOpenSettings,
                   )
                   : _SessionControls(
                     key: ValueKey(state.status),
                     state: state,
                     onManageActivities: onManageActivities,
+                    onOpenSettings: onOpenSettings,
                   ),
         );
       },
@@ -37,9 +44,14 @@ class TimerControls extends StatelessWidget {
 }
 
 class _ReadyControls extends StatelessWidget {
-  const _ReadyControls({required this.onManageActivities, super.key});
+  const _ReadyControls({
+    required this.onManageActivities,
+    required this.onOpenSettings,
+    super.key,
+  });
 
   final VoidCallback onManageActivities;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +77,10 @@ class _ReadyControls extends StatelessWidget {
                       context.read<StopwatchCubit>().start(selectedActivityId),
         ),
         const SizedBox(width: 18),
-        _MoreMenu(onManageActivities: onManageActivities),
+        _MoreMenu(
+          onManageActivities: onManageActivities,
+          onOpenSettings: onOpenSettings,
+        ),
       ],
     );
   }
@@ -75,11 +90,13 @@ class _SessionControls extends StatelessWidget {
   const _SessionControls({
     required this.state,
     required this.onManageActivities,
+    required this.onOpenSettings,
     super.key,
   });
 
   final StopwatchState state;
   final VoidCallback onManageActivities;
+  final VoidCallback onOpenSettings;
 
   Future<void> _save(BuildContext context) async {
     final result = await context.read<StopwatchCubit>().save();
@@ -183,7 +200,10 @@ class _SessionControls extends StatelessWidget {
           onTap: primaryAction,
         ),
         const SizedBox(width: 10),
-        _MoreMenu(onManageActivities: onManageActivities),
+        _MoreMenu(
+          onManageActivities: onManageActivities,
+          onOpenSettings: onOpenSettings,
+        ),
       ],
     );
   }
@@ -331,9 +351,13 @@ class _CompactControl extends StatelessWidget {
 }
 
 class _MoreMenu extends StatelessWidget {
-  const _MoreMenu({required this.onManageActivities});
+  const _MoreMenu({
+    required this.onManageActivities,
+    required this.onOpenSettings,
+  });
 
   final VoidCallback onManageActivities;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +382,15 @@ class _MoreMenu extends StatelessWidget {
             size: 20,
           ),
           child: const Text('Manage Activities'),
+        ),
+        MenuItemButton(
+          onPressed: onOpenSettings,
+          leadingIcon: const Icon(
+            Icons.settings_outlined,
+            color: AppColors.cyan,
+            size: 20,
+          ),
+          child: const Text('Settings'),
         ),
       ],
       builder:

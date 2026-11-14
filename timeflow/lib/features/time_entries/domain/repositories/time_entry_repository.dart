@@ -9,6 +9,8 @@ abstract interface class TimeEntryRepository {
 
   Future<void> saveEntry(TimeEntry entry);
 
+  Future<void> saveEntries(Iterable<TimeEntry> entries);
+
   Future<bool> updateEntry(TimeEntry entry);
 
   Future<bool> updateNote(String entryId, String? note);

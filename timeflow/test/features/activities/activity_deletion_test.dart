@@ -196,6 +196,9 @@ class _ControlledDeletionRepository implements ActivityRepository {
   Future<void> saveActivity(Activity activity) async {}
 
   @override
+  Future<void> saveActivities(Iterable<Activity> activities) async {}
+
+  @override
   Future<ActivityDeletionResult> deleteActivity(String activityId) {
     deleteCalls++;
     final fixedResult = result;

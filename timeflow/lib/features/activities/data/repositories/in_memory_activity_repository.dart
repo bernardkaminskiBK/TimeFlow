@@ -60,6 +60,13 @@ class InMemoryActivityRepository implements ActivityRepository {
   }
 
   @override
+  Future<void> saveActivities(Iterable<Activity> activities) async {
+    for (final activity in activities) {
+      await saveActivity(activity);
+    }
+  }
+
+  @override
   Future<ActivityDeletionResult> deleteActivity(String activityId) async {
     final index = _activities.indexWhere((item) => item.id == activityId);
     if (index == -1) return ActivityDeletionResult.notFound;

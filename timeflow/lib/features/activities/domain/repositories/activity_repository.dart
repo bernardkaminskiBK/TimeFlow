@@ -7,6 +7,8 @@ abstract interface class ActivityRepository {
 
   Future<void> saveActivity(Activity activity);
 
+  Future<void> saveActivities(Iterable<Activity> activities);
+
   /// Permanently deletes an unreferenced activity.
   ///
   /// Implementations must return [ActivityDeletionResult.referenced] when

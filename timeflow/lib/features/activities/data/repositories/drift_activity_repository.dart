@@ -34,6 +34,14 @@ class DriftActivityRepository implements ActivityRepository {
           createdAt: Value(a.createdAt),
         ),
       );
+
+  @override
+  Future<void> saveActivities(Iterable<domain.Activity> activities) =>
+      db.transaction(() async {
+        for (final activity in activities) {
+          await saveActivity(activity);
+        }
+      });
   @override
   Future<ActivityDeletionResult> deleteActivity(String id) async {
     if (await (db.select(db.activities)

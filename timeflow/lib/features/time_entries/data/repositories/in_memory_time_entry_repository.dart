@@ -42,6 +42,19 @@ class InMemoryTimeEntryRepository implements TimeEntryRepository {
   }
 
   @override
+  Future<void> saveEntries(Iterable<TimeEntry> entries) async {
+    final knownIds = _entries.map((entry) => entry.id).toSet();
+    var changed = false;
+    for (final entry in entries) {
+      if (knownIds.add(entry.id)) {
+        _entries.add(entry);
+        changed = true;
+      }
+    }
+    if (changed) _changes.add(null);
+  }
+
+  @override
   Future<bool> updateEntry(TimeEntry entry) async {
     final index = _entries.indexWhere((existing) => existing.id == entry.id);
     if (index == -1) return false;

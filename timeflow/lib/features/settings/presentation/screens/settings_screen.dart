@@ -1,13 +1,264 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../app/theme/app_theme.dart';
+import '../../../activities/domain/repositories/activity_repository.dart';
+import '../../../activities/presentation/cubit/activity_cubit.dart';
+import '../../../time_entries/domain/repositories/time_entry_repository.dart';
+import '../../data/services/csv_export_service.dart';
+import '../../data/services/csv_import_service.dart';
+import '../widgets/csv_import_preview_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   static const _danger = Color(0xFFFF7188);
+  static const _maximumImportBytes = 10 * 1024 * 1024;
+
+  Future<CsvExportDocument?> _createExportDocument(BuildContext context) async {
+    final document =
+        await CsvExportService(
+          context.read<ActivityRepository>(),
+          context.read<TimeEntryRepository>(),
+        ).create();
+    if (!context.mounted) return null;
+    if (document.sessionCount == 0) {
+      _showFeedback(context, 'There are no sessions to export yet.');
+      return null;
+    }
+    return document;
+  }
+
+  Future<void> _exportData(BuildContext context) async {
+    try {
+      final document = await _createExportDocument(context);
+      if (document == null || !context.mounted) return;
+
+      final directory = await getTemporaryDirectory();
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}${document.fileName}',
+      );
+      await file.writeAsString(document.csv, encoding: utf8, flush: true);
+      if (!context.mounted) return;
+      final renderBox = context.findRenderObject() as RenderBox?;
+      final shareResult = await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          fileNameOverrides: [document.fileName],
+          title: 'Share TimeFlow export',
+          subject: 'TimeFlow data export',
+          sharePositionOrigin:
+              renderBox == null
+                  ? null
+                  : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+        ),
+      );
+      if (!context.mounted) return;
+      switch (shareResult.status) {
+        case ShareResultStatus.success:
+          _showFeedback(
+            context,
+            '${document.sessionCount} '
+            '${document.sessionCount == 1 ? 'session' : 'sessions'} exported.',
+          );
+          break;
+        case ShareResultStatus.dismissed:
+          break;
+        case ShareResultStatus.unavailable:
+          _showFeedback(
+            context,
+            'The system share panel is not available.',
+            isError: true,
+          );
+          break;
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showFeedback(
+          context,
+          'TimeFlow could not create the CSV export.',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  Future<void> _saveExportData(BuildContext context) async {
+    try {
+      final document = await _createExportDocument(context);
+      if (document == null || !context.mounted) return;
+
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Save TimeFlow export',
+        fileName: document.fileName,
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+        bytes: Uint8List.fromList(utf8.encode(document.csv)),
+      );
+      if (savedPath == null || !context.mounted) return;
+      _showFeedback(
+        context,
+        '${document.sessionCount} '
+        '${document.sessionCount == 1 ? 'session' : 'sessions'} saved to CSV.',
+      );
+    } catch (_) {
+      if (context.mounted) {
+        _showFeedback(
+          context,
+          'TimeFlow could not save the CSV export.',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  Future<void> _showExportOptions(BuildContext context) async {
+    final action = await showModalBottomSheet<_ExportAction>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => const _ExportOptionsSheet(),
+    );
+    if (!context.mounted) return;
+    switch (action) {
+      case _ExportAction.save:
+        await _saveExportData(context);
+        break;
+      case _ExportAction.share:
+        await _exportData(context);
+        break;
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _importData(BuildContext context) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        dialogTitle: 'Choose a TimeFlow CSV file',
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+        withData: true,
+      );
+      if (result == null || !context.mounted) return;
+      final file = result.files.single;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        _showFeedback(
+          context,
+          'TimeFlow could not read the selected file.',
+          isError: true,
+        );
+        return;
+      }
+      if (bytes.length > _maximumImportBytes) {
+        _showFeedback(
+          context,
+          'The CSV is larger than the 10 MB import limit.',
+          isError: true,
+        );
+        return;
+      }
+
+      final service = CsvImportService(
+        context.read<ActivityRepository>(),
+        context.read<TimeEntryRepository>(),
+      );
+      final activityCubit = context.read<ActivityCubit>();
+      final preview = await service.prepare(utf8.decode(bytes));
+      if (!context.mounted) return;
+      // Some Android document providers return before the app's resumed frame
+      // has been painted. Opening a modal immediately can leave its contents
+      // unpainted even though the widgets and semantics are present.
+      await WidgetsBinding.instance.endOfFrame;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      if (!context.mounted) return;
+      final confirmed = await showCsvImportPreviewSheet(
+        context,
+        fileName: file.name,
+        preview: preview,
+      );
+      if (!confirmed || !context.mounted) return;
+
+      final imported = await service.import(preview);
+      await activityCubit.loadActivities();
+      if (!context.mounted) return;
+      _showFeedback(
+        context,
+        '${imported.importedEntries} '
+        '${imported.importedEntries == 1 ? 'session' : 'sessions'} imported '
+        'successfully.',
+      );
+    } on FormatException {
+      if (context.mounted) {
+        _showFeedback(
+          context,
+          'The selected file is not valid UTF-8 text.',
+          isError: true,
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showFeedback(
+          context,
+          'TimeFlow could not complete the import.',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  void _showFeedback(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
+    final color = isError ? _danger : const Color(0xFF4FD6A3);
+    final bottomInset = math.max(
+      MediaQuery.viewPaddingOf(context).bottom,
+      MediaQuery.systemGestureInsetsOf(context).bottom,
+    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                isError
+                    ? Icons.error_outline_rounded
+                    : Icons.check_circle_rounded,
+                color: color,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.elevatedSurface,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: color.withValues(alpha: 0.22)),
+          ),
+        ),
+      );
+  }
 
   void _showPlanned(BuildContext context, String feature) {
     final bottomInset = math.max(
@@ -106,18 +357,18 @@ class SettingsScreen extends StatelessWidget {
                                 iconColor: AppColors.cyan,
                                 title: 'Import data',
                                 subtitle: 'Bring sessions into TimeFlow',
-                                status: 'NEXT',
-                                statusTone: _StatusTone.accent,
-                                onTap: () => _showPlanned(context, 'Import'),
+                                status: 'READY',
+                                statusTone: _StatusTone.success,
+                                onTap: () => _importData(context),
                               ),
                               _SettingsTile(
                                 icon: Icons.ios_share_rounded,
                                 iconColor: const Color(0xFF8C82FF),
                                 title: 'Export data',
                                 subtitle: 'Create a portable CSV export',
-                                status: 'NEXT',
-                                statusTone: _StatusTone.accent,
-                                onTap: () => _showPlanned(context, 'Export'),
+                                status: 'READY',
+                                statusTone: _StatusTone.success,
+                                onTap: () => _showExportOptions(context),
                               ),
                               _SettingsTile(
                                 icon: Icons.backup_outlined,
@@ -407,6 +658,158 @@ class SettingsScreen extends StatelessWidget {
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ExportAction { save, share }
+
+class _ExportOptionsSheet extends StatelessWidget {
+  const _ExportOptionsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        decoration: BoxDecoration(
+          color: AppColors.elevatedSurface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppColors.stroke),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x99000000),
+              blurRadius: 30,
+              offset: Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Export TimeFlow data',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Save the CSV on this device or share it with another app.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _ExportOption(
+              icon: Icons.save_alt_rounded,
+              color: AppColors.cyan,
+              title: 'Save to device',
+              subtitle: 'Choose a folder on your phone',
+              onTap: () => Navigator.pop(context, _ExportAction.save),
+            ),
+            const SizedBox(height: 10),
+            _ExportOption(
+              icon: Icons.ios_share_rounded,
+              color: const Color(0xFF8C82FF),
+              title: 'Share CSV',
+              subtitle: 'Send it to another app or device',
+              onTap: () => Navigator.pop(context, _ExportAction.share),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExportOption extends StatelessWidget {
+  const _ExportOption({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.background.withValues(alpha: 0.42),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.stroke.withValues(alpha: 0.7)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: color.withValues(alpha: 0.25)),
+                ),
+                child: Icon(icon, color: color, size: 23),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
+            ],
           ),
         ),
       ),

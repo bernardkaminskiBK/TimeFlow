@@ -68,6 +68,30 @@ class DriftTimeEntryRepository implements TimeEntryRepository {
   }
 
   @override
+  Future<void> saveEntries(Iterable<domain.TimeEntry> entries) async {
+    final companions = entries.map(
+      (entry) => TimeEntriesCompanion.insert(
+        id: entry.id,
+        activityId: entry.activityId,
+        startedAt: entry.startedAt,
+        endedAt: entry.endedAt,
+        durationMilliseconds: entry.duration.inMilliseconds,
+        createdAt: entry.createdAt,
+        note: Value(entry.note),
+      ),
+    );
+    if (companions.isEmpty) return;
+    await db.batch(
+      (batch) => batch.insertAll(
+        db.timeEntries,
+        companions,
+        mode: InsertMode.insertOrIgnore,
+      ),
+    );
+    _changes.add(null);
+  }
+
+  @override
   Future<bool> updateEntry(domain.TimeEntry entry) async {
     final updated = await (db.update(db.timeEntries)
       ..where((table) => table.id.equals(entry.id))).write(
